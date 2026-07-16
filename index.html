@@ -673,10 +673,42 @@
     })();
   }
 
+  // ---------- despike: en ensam avvikare är en glitch, inte fysik ----------
+  // Shinkansen accelererar max ~2,6 km/h per sekund; >12 km/h/s är omöjligt för tåg.
+  // Första avvikande samplet slängs; bekräftar nästa sample nivån är förändringen verklig.
+  var dsLastKmh = null, dsLastT = 0, dsSuspect = null;
+  function despike(kmh) {
+    var now = Date.now();
+    if (dsLastKmh !== null) {
+      var dt = (now - dsLastT) / 1000;
+      if (dt > 0 && dt < 5) {
+        var maxDelta = 12 * dt + 3;
+        if (Math.abs(kmh - dsLastKmh) > maxDelta) {
+          if (dsSuspect !== null && Math.abs(kmh - dsSuspect.kmh) <= 12 * ((now - dsSuspect.t) / 1000) + 3) {
+            dsSuspect = null;                // två i rad på nya nivån → verklig
+            dsLastKmh = kmh; dsLastT = now;
+            return kmh;
+          }
+          dsSuspect = { kmh: kmh, t: now };
+          return null;                       // släng den ensamma spiken
+        }
+      }
+    }
+    dsSuspect = null;
+    dsLastKmh = kmh; dsLastT = now;
+    return kmh;
+  }
+
   // ---------- measurement ----------
   function ingest(kmh, accM, distM, dtS) {
     if (kmh < 1) kmh = 0;                    // GPS-brus vid stillastående
     if (kmh > 1300) return;                  // orimligt — släng
+    var filtered = despike(kmh);
+    if (filtered === null) {
+      if (accM != null) els.acc.innerHTML = '±' + Math.round(accM) + '<small>m</small>';
+      return;                                // spik under utredning — vänta på bekräftelse
+    }
+    kmh = filtered;
     targetKmh = kmh;
     if (kmh > maxKmh) maxKmh = kmh;
     if (scaleMode === 'auto') {
