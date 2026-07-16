@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b1220">
+<title>新幹線 Speed — Shinkansen-hastighetsmätare</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚄</text></svg>">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 800px at 50% -10%, #14213d 0%, #0b1220 55%, #070b14 100%);
+    color: #e8edf7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100%;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+    overflow-x: hidden;
+  }
+  header { text-align: center; margin-bottom: 4px; }
+  .kanji { font-size: 15px; letter-spacing: 0.5em; color: #7fd1c0; text-indent: 0.5em; }
+  h1 { font-size: 19px; font-weight: 700; letter-spacing: 0.06em; margin-top: 2px; }
+  h1 .thin { font-weight: 300; color: #93a3bd; }
+
+  .gauge-wrap { position: relative; width: min(88vw, 400px); margin-top: 6px; }
+  .gauge-wrap svg { width: 100%; height: auto; display: block; }
+
+  .readout {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    pointer-events: none; padding-top: 24%;
+  }
+  .speed {
+    font-size: clamp(64px, 22vw, 104px);
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    text-shadow: 0 0 34px rgba(127, 209, 192, 0.35);
+  }
+  .unit { font-size: 17px; color: #93a3bd; letter-spacing: 0.28em; margin-top: 6px; text-indent: 0.28em; }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    width: min(92vw, 430px); margin-top: 10px;
+  }
+  .stat {
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 10px 4px 9px;
+    text-align: center;
+  }
+  .stat .label { font-size: 10px; letter-spacing: 0.14em; color: #8fa0ba; }
+  .stat .value { font-size: 19px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .stat .value small { font-size: 10px; font-weight: 400; color: #8fa0ba; margin-left: 2px; }
+  #maxVal { color: #ff8fb1; }
+
+  .chart-wrap { width: min(92vw, 430px); margin-top: 12px; }
+  .chart-title { font-size: 10px; letter-spacing: 0.14em; color: #8fa0ba; margin-bottom: 4px; }
+  canvas#chart {
+    width: 100%; height: 64px; display: block;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+  }
+
+  #status {
+    margin-top: 12px; font-size: 12.5px; color: #93a3bd; text-align: center;
+    min-height: 1.4em; max-width: 92vw; line-height: 1.45;
+  }
+  #status.err { color: #ff9d9d; }
+
+  .overlay {
+    position: fixed; inset: 0; z-index: 10;
+    background: rgba(7, 11, 20, 0.82);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px;
+  }
+  .overlay .big-emoji { font-size: 56px; margin-bottom: 10px; }
+  .overlay p { color: #b7c3d8; font-size: 14.5px; max-width: 320px; line-height: 1.55; margin-bottom: 22px; }
+  .btn {
+    font-size: 18px; font-weight: 700; letter-spacing: 0.04em;
+    color: #06251e;
+    background: linear-gradient(135deg, #8ee8d2, #59c9ad);
+    border: none; border-radius: 999px;
+    padding: 15px 44px;
+    box-shadow: 0 8px 28px rgba(89, 201, 173, 0.35);
+    cursor: pointer;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-demo {
+    margin-top: 14px; background: none; border: 1px solid rgba(255,255,255,0.22);
+    color: #93a3bd; font-size: 13px; font-weight: 400;
+    border-radius: 999px; padding: 9px 22px; box-shadow: none; cursor: pointer;
+  }
+  .hidden { display: none !important; }
+
+  footer { margin-top: auto; padding-top: 14px; font-size: 10.5px; color: #5c6b85; letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kanji">新幹線</div>
+  <h1>SHINKANSEN <span class="thin">SPEED</span></h1>
+</header>
+
+<div class="gauge-wrap">
+  <svg viewBox="0 0 300 234" aria-hidden="true">
+    <defs>
+      <linearGradient id="arcGrad" x1="0%" y1="100%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#59c9ad"/>
+        <stop offset="60%" stop-color="#7fd1c0"/>
+        <stop offset="100%" stop-color="#ff8fb1"/>
+      </linearGradient>
+    </defs>
+    <g id="ticks"></g>
+    <path id="arcBg" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14" stroke-linecap="round"/>
+    <path id="arcFg" fill="none" stroke="url(#arcGrad)" stroke-width="14" stroke-linecap="round"/>
+    <circle id="dot" r="7" fill="#fff" opacity="0"/>
+  </svg>
+  <div class="readout">
+    <div class="speed" id="speedVal">0</div>
+    <div class="unit">KM/H</div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="label">MAX</div><div class="value" id="maxVal">0</div></div>
+  <div class="stat"><div class="label">MEDEL</div><div class="value" id="avgVal">0</div></div>
+  <div class="stat"><div class="label">DISTANS</div><div class="value" id="distVal">0.0<small>km</small></div></div>
+  <div class="stat"><div class="label">GPS</div><div class="value" id="accVal">–<small>m</small></div></div>
+</div>
+
+<div class="chart-wrap">
+  <div class="chart-title">SENASTE 5 MIN</div>
+  <canvas id="chart"></canvas>
+</div>
+
+<div id="status">Tryck på Starta för att börja mäta.</div>
+
+<div class="overlay" id="overlay">
+  <div class="big-emoji">🚄</div>
+  <p>Mäter din hastighet med iPhonens GPS. Godkänn platsåtkomst när Safari frågar — funkar bäst vid fönstret.</p>
+  <button class="btn" id="startBtn">Starta</button>
+  <button class="btn-demo" id="demoBtn">Demo-läge (utan GPS)</button>
+</div>
+
+<footer>SHINKANSEN SPEEDOMETER ・ 頑張って</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var MAX_KMH = 350;          // gauge scale (Tohoku-shinkansen toppar på 320)
+  var SWEEP = 240;            // degrees of arc
+  var START_DEG = -120;       // 0 km/h position (0° = up)
+  var CX = 150, CY = 150, R = 120;
+
+  var els = {
+    speed: document.getElementById('speedVal'),
+    max: document.getElementById('maxVal'),
+    avg: document.getElementById('avgVal'),
+    dist: document.getElementById('distVal'),
+    acc: document.getElementById('accVal'),
+    status: document.getElementById('status'),
+    overlay: document.getElementById('overlay'),
+    arcBg: document.getElementById('arcBg'),
+    arcFg: document.getElementById('arcFg'),
+    dot: document.getElementById('dot'),
+    ticks: document.getElementById('ticks'),
+    chart: document.getElementById('chart')
+  };
+
+  // ---------- gauge geometry ----------
+  function polar(deg, r) {
+    var a = (deg - 90) * Math.PI / 180;
+    return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+  }
+  function arcPath(fromDeg, toDeg, r) {
+    var p1 = polar(fromDeg, r), p2 = polar(toDeg, r);
+    var large = (toDeg - fromDeg) > 180 ? 1 : 0;
+    return 'M ' + p1[0] + ' ' + p1[1] + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + p2[0] + ' ' + p2[1];
+  }
+
+  els.arcBg.setAttribute('d', arcPath(START_DEG, START_DEG + SWEEP, R));
+  els.arcFg.setAttribute('d', arcPath(START_DEG, START_DEG + SWEEP, R));
+  var ARC_LEN = els.arcFg.getTotalLength();
+  els.arcFg.style.strokeDasharray = ARC_LEN;
+  els.arcFg.style.strokeDashoffset = ARC_LEN;
+
+  // ticks + labels
+  var svgns = 'http://www.w3.org/2000/svg';
+  for (var v = 0; v <= MAX_KMH; v += 25) {
+    var deg = START_DEG + (v / MAX_KMH) * SWEEP;
+    var major = v % 50 === 0;
+    var o = polar(deg, R + 11), i = polar(deg, R + (major ? 3 : 7));
+    var line = document.createElementNS(svgns, 'line');
+    line.setAttribute('x1', o[0]); line.setAttribute('y1', o[1]);
+    line.setAttribute('x2', i[0]); line.setAttribute('y2', i[1]);
+    line.setAttribute('stroke', major ? 'rgba(232,237,247,0.5)' : 'rgba(232,237,247,0.2)');
+    line.setAttribute('stroke-width', major ? 2 : 1);
+    els.ticks.appendChild(line);
+    if (major && v % 100 === 0) {
+      var tp = polar(deg, R + 24);
+      var t = document.createElementNS(svgns, 'text');
+      t.setAttribute('x', tp[0]); t.setAttribute('y', tp[1]);
+      t.setAttribute('fill', 'rgba(147,163,189,0.8)');
+      t.setAttribute('font-size', '11');
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('dominant-baseline', 'middle');
+      t.textContent = v;
+      els.ticks.appendChild(t);
+    }
+  }
+
+  // ---------- state ----------
+  var displayKmh = 0;      // smoothed value actually shown
+  var targetKmh = 0;       // latest measured value
+  var maxKmh = 0;
+  var totalDistM = 0;      // meters
+  var movingTimeS = 0;     // seconds with speed > 2 km/h
+  var lastFix = null;      // {lat, lon, t, acc}
+  var history = [];        // [{t, kmh}] for the chart
+  var HISTORY_MS = 5 * 60 * 1000;
+  var wakeLock = null;
+  var demoTimer = null;
+
+  function setStatus(msg, isErr) {
+    els.status.textContent = msg;
+    els.status.className = isErr ? 'err' : '';
+  }
+
+  function haversine(lat1, lon1, lat2, lon2) {
+    var rad = Math.PI / 180, R_E = 6371000;
+    var dLat = (lat2 - lat1) * rad, dLon = (lon2 - lon1) * rad;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * rad) * Math.cos(lat2 * rad) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R_E * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  // ---------- measurement ----------
+  function ingest(kmh, accM, distM, dtS) {
+    if (kmh < 1) kmh = 0;                    // GPS-brus vid stillastående
+    if (kmh > 500) return;                   // orimligt — släng
+    targetKmh = kmh;
+    if (kmh > maxKmh) maxKmh = kmh;
+    if (distM != null && distM >= 0) totalDistM += distM;
+    if (dtS != null && kmh > 2) movingTimeS += dtS;
+    history.push({ t: Date.now(), kmh: kmh });
+    var cutoff = Date.now() - HISTORY_MS;
+    while (history.length && history[0].t < cutoff) history.shift();
+    if (accM != null) {
+      els.acc.innerHTML = '±' + Math.round(accM) + '<small>m</small>';
+    }
+    updateStats();
+  }
+
+  function onPosition(pos) {
+    var c = pos.coords;
+    var t = pos.timestamp;
+    var kmh = null, distM = null, dtS = null;
+
+    if (lastFix) {
+      dtS = (t - lastFix.t) / 1000;
+      if (dtS > 0 && c.accuracy < 150 && lastFix.acc < 150) {
+        distM = haversine(lastFix.lat, lastFix.lon, c.latitude, c.longitude);
+      }
+    }
+
+    if (typeof c.speed === 'number' && !isNaN(c.speed) && c.speed !== null && c.speed >= 0) {
+      kmh = c.speed * 3.6;                   // Doppler-hastighet: bäst
+    } else if (distM != null && dtS != null && dtS >= 0.8 && dtS < 30) {
+      kmh = (distM / dtS) * 3.6;             // fallback: beräknad ur positioner
+    }
+
+    lastFix = { lat: c.latitude, lon: c.longitude, t: t, acc: c.accuracy };
+
+    if (kmh != null) {
+      ingest(kmh, c.accuracy, distM, dtS);
+      setStatus(kmh < 1
+        ? 'GPS-fix OK — väntar på rörelse …'
+        : 'Mäter live via GPS.');
+    } else {
+      els.acc.innerHTML = '±' + Math.round(c.accuracy) + '<small>m</small>';
+      setStatus('GPS-fix OK — väntar på hastighetsdata …');
+    }
+  }
+
+  function onGeoError(err) {
+    if (err.code === 1) {
+      setStatus('Platsåtkomst nekad. Aktivera: Inställningar → Integritet → Platstjänster → Safari-webbplatser → "Vid användning". Ladda sedan om sidan.', true);
+    } else if (err.code === 2) {
+      setStatus('Ingen GPS-signal just nu — testa närmare fönstret. Försöker igen …', true);
+    } else {
+      setStatus('GPS-timeout — försöker igen …', true);
+    }
+  }
+
+  function startGPS() {
+    if (!('geolocation' in navigator)) {
+      setStatus('Din webbläsare saknar stöd för platstjänster.', true);
+      return;
+    }
+    setStatus('Hämtar GPS-fix …');
+    navigator.geolocation.watchPosition(onPosition, onGeoError, {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 20000
+    });
+    requestWakeLock();
+  }
+
+  // ---------- demo mode ----------
+  function startDemo() {
+    var t0 = Date.now();
+    if (demoTimer) clearInterval(demoTimer);
+    demoTimer = setInterval(function () {
+      var el = (Date.now() - t0) / 1000;
+      var base = Math.min(285, el * 9);                       // accelerera till ~285
+      var kmh = Math.max(0, base + Math.sin(el / 7) * 12 + (Math.random() - 0.5) * 4);
+      ingest(kmh, 8, kmh / 3.6, 1);
+      setStatus('Demo-läge — simulerad hastighet.');
+    }, 1000);
+    requestWakeLock();
+  }
+
+  // ---------- wake lock ----------
+  function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    navigator.wakeLock.request('screen').then(function (wl) {
+      wakeLock = wl;
+    }).catch(function () { /* ignoreras — ej kritiskt */ });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && wakeLock !== null) requestWakeLock();
+  });
+
+  // ---------- rendering ----------
+  function updateStats() {
+    els.max.textContent = Math.round(maxKmh);
+    var avg = movingTimeS > 5 ? (totalDistM / movingTimeS) * 3.6 : 0;
+    els.avg.textContent = Math.round(avg);
+    var km = totalDistM / 1000;
+    els.dist.innerHTML = (km < 100 ? km.toFixed(1) : Math.round(km)) + '<small>km</small>';
+  }
+
+  function drawChart() {
+    var canvas = els.chart;
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== w * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    if (history.length < 2) return;
+
+    var now = Date.now();
+    var yMax = Math.max(100, maxKmh * 1.1);
+    ctx.beginPath();
+    for (var i = 0; i < history.length; i++) {
+      var x = w - ((now - history[i].t) / HISTORY_MS) * w;
+      var y = h - 4 - (history[i].kmh / yMax) * (h - 10);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = '#7fd1c0';
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    // fyllning under linjen
+    var last = history[history.length - 1];
+    var lastX = w - ((now - last.t) / HISTORY_MS) * w;
+    var firstX = w - ((now - history[0].t) / HISTORY_MS) * w;
+    ctx.lineTo(lastX, h); ctx.lineTo(firstX, h); ctx.closePath();
+    ctx.fillStyle = 'rgba(127, 209, 192, 0.12)';
+    ctx.fill();
+  }
+
+  function frame() {
+    // mjuk animering mot senaste mätvärdet
+    displayKmh += (targetKmh - displayKmh) * 0.12;
+    if (Math.abs(displayKmh - targetKmh) < 0.05) displayKmh = targetKmh;
+
+    els.speed.textContent = Math.round(displayKmh);
+
+    var frac = Math.min(1, Math.max(0, displayKmh / MAX_KMH));
+    els.arcFg.style.strokeDashoffset = ARC_LEN * (1 - frac);
+    if (frac > 0.003) {
+      var p = els.arcFg.getPointAtLength(ARC_LEN * frac);
+      els.dot.setAttribute('cx', p.x);
+      els.dot.setAttribute('cy', p.y);
+      els.dot.setAttribute('opacity', '1');
+    } else {
+      els.dot.setAttribute('opacity', '0');
+    }
+
+    drawChart();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- start ----------
+  document.getElementById('startBtn').addEventListener('click', function () {
+    els.overlay.classList.add('hidden');
+    startGPS();
+  });
+  document.getElementById('demoBtn').addEventListener('click', function () {
+    els.overlay.classList.add('hidden');
+    startDemo();
+  });
+})();
+</script>
+</body>
+</html>
