@@ -2,7 +2,7 @@
 <html lang="sv">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; manifest-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; manifest-src 'self'; connect-src https://mrcuhsuavhysldstkksu.supabase.co; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -150,6 +150,51 @@
     cursor: pointer;
   }
   .share-btn:active { transform: scale(0.97); }
+  .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+  .btn-row .share-btn { margin-top: 0; }
+
+  .lb-card {
+    background: #0e1626;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    width: min(92vw, 360px);
+    max-height: 82vh;
+    overflow-y: auto;
+    padding: 16px;
+    text-align: left;
+  }
+  .lb-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .lb-title { font-weight: 800; font-size: 16px; }
+  .lb-close { background: none; border: none; color: #93a3bd; font-size: 18px; cursor: pointer; padding: 4px 8px; }
+  .lb-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+  .lb-tab {
+    flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    color: #93a3bd; font-size: 10.5px; letter-spacing: 0.03em;
+    border-radius: 8px; padding: 6px 2px; cursor: pointer; white-space: nowrap; overflow: hidden;
+  }
+  .lb-tab.active { background: rgba(127,209,192,0.16); border-color: rgba(127,209,192,0.55); color: #8ee8d2; }
+  .lb-list { list-style: none; min-height: 100px; }
+  .lb-list li { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13.5px; }
+  .lb-rank { width: 26px; text-align: center; flex: none; color: #8fa0ba; font-variant-numeric: tabular-nums; }
+  .lb-nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-kmh { font-weight: 700; font-variant-numeric: tabular-nums; color: #8ee8d2; }
+  .lb-empty { color: #8fa0ba; font-size: 12.5px; text-align: center; padding: 22px 8px; display: block; }
+  .lb-daily-title { margin-top: 12px; }
+  .lb-daily { display: flex; align-items: flex-end; gap: 2px; height: 46px; margin-top: 4px; }
+  .lb-daily div { flex: 1; background: rgba(127,209,192,0.5); border-radius: 2px 2px 0 0; min-height: 2px; }
+  .lb-submit { display: flex; gap: 8px; margin-top: 14px; }
+  .lb-submit input {
+    flex: 1; min-width: 0;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 10px; color: #e8edf7; padding: 9px 10px; font-size: 13.5px;
+  }
+  .lb-send {
+    background: linear-gradient(135deg, #8ee8d2, #59c9ad); color: #06251e;
+    border: none; border-radius: 10px; font-weight: 700; font-size: 13px;
+    padding: 9px 14px; cursor: pointer; white-space: nowrap;
+  }
+  .lb-send:disabled { opacity: 0.45; }
+  .lb-note { font-size: 11.5px; color: #8fa0ba; margin-top: 8px; text-align: center; min-height: 1.2em; }
 
   .overlay {
     position: fixed; inset: 0; z-index: 10;
@@ -246,7 +291,33 @@
 </div>
 
 <div id="status" aria-live="polite"></div>
-<button class="share-btn" id="shareBtn">Dela</button>
+<div class="btn-row">
+  <button class="share-btn" id="shareBtn">Dela</button>
+  <button class="share-btn" id="lbBtn">🏆</button>
+</div>
+
+<div class="overlay hidden" id="lbPanel">
+  <div class="lb-card">
+    <div class="lb-head">
+      <span class="lb-title" id="lbTitle">🏆</span>
+      <button class="lb-close" id="lbClose" aria-label="Close">✕</button>
+    </div>
+    <div class="lb-tabs">
+      <button class="lb-tab active" data-p="today"></button>
+      <button class="lb-tab" data-p="week"></button>
+      <button class="lb-tab" data-p="month"></button>
+      <button class="lb-tab" data-p="alltime"></button>
+    </div>
+    <ol class="lb-list" id="lbList"></ol>
+    <div class="chart-title lb-daily-title" id="lbDailyTitle"></div>
+    <div class="lb-daily" id="lbDaily"></div>
+    <div class="lb-submit">
+      <input id="lbName" maxlength="20" autocomplete="nickname">
+      <button class="lb-send" id="lbSend"></button>
+    </div>
+    <div class="lb-note" id="lbNote" aria-live="polite"></div>
+  </div>
+</div>
 
 <div class="overlay" id="overlay">
   <div class="big-emoji">🚄</div>
@@ -296,6 +367,20 @@
       noGeo: "Your browser doesn't support geolocation.",
       tunnel: 'Tunnel? GPS signal lost — common on the Shinkansen. Waiting… 🕳️',
       coarse: 'Only a rough position so far (no satellite lock) — hold the phone near the window and make sure Precise Location is ON for your browser.',
+      lbTitle: "Leaderboard",
+      lbToday: "TODAY",
+      lbWeek: "WEEK",
+      lbMonth: "MONTH",
+      lbAll: "ALL-TIME",
+      lbSend: "Submit",
+      lbNamePh: "Your name",
+      lbEmpty: "No records yet — be the first! 🚄",
+      lbNeed: "Measure at least 30 km/h with GPS for 30+ seconds first.",
+      lbSent: "Submitted! Rank {r} all-time 🎉",
+      lbFail: "The measurement was not accepted.",
+      lbRate: "Too many submissions — try again later.",
+      lbError: "Could not reach the leaderboard.",
+      lbDaily: "DAILY TOP — LAST 30 DAYS",
       share: 'Share', copied: 'Link copied!',
       shareText: "We're doing {v} km/h on the Shinkansen right now! 🚄",
       avg: 'AVG', dist: 'DISTANCE', chart: 'LAST 5 MIN', scale: 'SCALE'
@@ -316,6 +401,20 @@
       noGeo: 'Din webbläsare saknar stöd för platstjänster.',
       tunnel: 'Tunnel? GPS-signalen borta — vanligt på Shinkansen. Väntar … 🕳️',
       coarse: 'Bara en grov position än så länge (ingen satellitkontakt) — håll telefonen vid fönstret och kolla att Exakt plats är på för webbläsaren.',
+      lbTitle: "Topplista",
+      lbToday: "IDAG",
+      lbWeek: "VECKA",
+      lbMonth: "MÅNAD",
+      lbAll: "ALLTID",
+      lbSend: "Skicka in",
+      lbNamePh: "Ditt namn",
+      lbEmpty: "Inga rekord än — bli först! 🚄",
+      lbNeed: "Mät minst 30 km/h med GPS i 30+ sekunder först.",
+      lbSent: "Inskickad! Plats {r} genom tiderna 🎉",
+      lbFail: "Mätningen godkändes inte.",
+      lbRate: "För många inskick — vänta en stund.",
+      lbError: "Kunde inte nå topplistan.",
+      lbDaily: "DAGSTOPP — SENASTE 30 DAGARNA",
       share: 'Dela', copied: 'Länk kopierad!',
       shareText: 'Vi kör {v} km/h på Shinkansen just nu! 🚄',
       avg: 'MEDEL', dist: 'DISTANS', chart: 'SENASTE 5 MIN', scale: 'SKALA'
@@ -336,6 +435,20 @@
       noGeo: 'お使いのブラウザは位置情報に対応していません。',
       tunnel: 'トンネル？GPS信号が途切れました。新幹線ではよくあります。待機中… 🕳️',
       coarse: 'まだ大まかな位置しか取得できていません。スマホを窓際に近づけ、ブラウザの「正確な位置情報」がオンになっているか確認してください。',
+      lbTitle: "ランキング",
+      lbToday: "今日",
+      lbWeek: "今週",
+      lbMonth: "今月",
+      lbAll: "歴代",
+      lbSend: "投稿",
+      lbNamePh: "ニックネーム",
+      lbEmpty: "まだ記録がありません。一番乗りになろう！🚄",
+      lbNeed: "先にGPSで30km/h以上を30秒以上計測してください。",
+      lbSent: "投稿しました！歴代{r}位 🎉",
+      lbFail: "計測データが承認されませんでした。",
+      lbRate: "投稿が多すぎます。しばらくしてからお試しください。",
+      lbError: "ランキングに接続できませんでした。",
+      lbDaily: "日別トップ・過去30日",
       share: '共有', copied: 'リンクをコピーしました！',
       shareText: 'いま新幹線で時速{v}kmで走行中！🚄',
       avg: '平均', dist: '距離', chart: '直近5分', scale: 'スケール'
@@ -356,6 +469,20 @@
       noGeo: '您的浏览器不支持定位。',
       tunnel: '隧道？GPS信号丢失，新干线上很常见。等待中… 🕳️',
       coarse: '目前只能获取粗略位置（尚未连接卫星）。请将手机靠近车窗，并确认浏览器已开启“精确位置”。',
+      lbTitle: "排行榜",
+      lbToday: "今天",
+      lbWeek: "本周",
+      lbMonth: "本月",
+      lbAll: "历史",
+      lbSend: "提交",
+      lbNamePh: "你的名字",
+      lbEmpty: "还没有记录，来当第一名吧！🚄",
+      lbNeed: "请先用GPS连续测得30 km/h以上至少30秒。",
+      lbSent: "已提交！历史第{r}名 🎉",
+      lbFail: "测量数据未通过验证。",
+      lbRate: "提交太频繁，请稍后再试。",
+      lbError: "无法连接排行榜。",
+      lbDaily: "每日最高 · 最近30天",
       share: '分享', copied: '链接已复制！',
       shareText: '我们乘坐的新干线现在时速{v}公里！🚄',
       avg: '平均', dist: '距离', chart: '最近5分钟', scale: '量程'
@@ -376,6 +503,20 @@
       noGeo: '브라우저가 위치 정보를 지원하지 않습니다.',
       tunnel: '터널? GPS 신호가 끊겼습니다. 신칸센에서는 흔한 일입니다. 대기 중… 🕳️',
       coarse: '아직 대략적인 위치만 잡혔습니다(위성 미연결). 휴대폰을 창가에 가까이 대고 브라우저의 “정확한 위치”가 켜져 있는지 확인하세요.',
+      lbTitle: "리더보드",
+      lbToday: "오늘",
+      lbWeek: "이번 주",
+      lbMonth: "이번 달",
+      lbAll: "역대",
+      lbSend: "제출",
+      lbNamePh: "닉네임",
+      lbEmpty: "아직 기록이 없습니다. 첫 번째가 되어 보세요! 🚄",
+      lbNeed: "먼저 GPS로 30km/h 이상을 30초 이상 측정하세요.",
+      lbSent: "제출 완료! 역대 {r}위 🎉",
+      lbFail: "측정 데이터가 승인되지 않았습니다.",
+      lbRate: "제출이 너무 많습니다. 잠시 후 다시 시도하세요.",
+      lbError: "리더보드에 연결할 수 없습니다.",
+      lbDaily: "일일 최고 · 최근 30일",
       share: '공유', copied: '링크가 복사되었습니다!',
       shareText: '지금 신칸센으로 시속 {v}km로 달리는 중! 🚄',
       avg: '평균', dist: '거리', chart: '최근 5분', scale: '범위'
@@ -396,6 +537,20 @@
       noGeo: 'Dein Browser unterstützt keine Ortung.',
       tunnel: 'Tunnel? GPS-Signal weg — im Shinkansen ganz normal. Warte… 🕳️',
       coarse: 'Bisher nur eine grobe Position (kein Satellitenempfang) — halte das Handy ans Fenster und prüfe, ob „Genauer Standort“ für den Browser aktiviert ist.',
+      lbTitle: "Bestenliste",
+      lbToday: "HEUTE",
+      lbWeek: "WOCHE",
+      lbMonth: "MONAT",
+      lbAll: "GESAMT",
+      lbSend: "Einreichen",
+      lbNamePh: "Dein Name",
+      lbEmpty: "Noch keine Einträge — sei der Erste! 🚄",
+      lbNeed: "Miss zuerst mind. 30 km/h per GPS für 30+ Sekunden.",
+      lbSent: "Eingereicht! Platz {r} aller Zeiten 🎉",
+      lbFail: "Die Messung wurde nicht akzeptiert.",
+      lbRate: "Zu viele Einsendungen — versuch es später.",
+      lbError: "Bestenliste nicht erreichbar.",
+      lbDaily: "TAGESTOP — LETZTE 30 TAGE",
       share: 'Teilen', copied: 'Link kopiert!',
       shareText: 'Wir fahren gerade {v} km/h im Shinkansen! 🚄',
       avg: 'SCHNITT', dist: 'DISTANZ', chart: 'LETZTE 5 MIN', scale: 'SKALA'
@@ -416,6 +571,20 @@
       noGeo: 'Ton navigateur ne prend pas en charge la géolocalisation.',
       tunnel: 'Tunnel ? Signal GPS perdu — fréquent en Shinkansen. En attente… 🕳️',
       coarse: 'Position encore approximative (pas de signal satellite) — tiens le téléphone près de la fenêtre et vérifie que la position exacte est activée pour le navigateur.',
+      lbTitle: "Classement",
+      lbToday: "JOUR",
+      lbWeek: "SEMAINE",
+      lbMonth: "MOIS",
+      lbAll: "RECORD",
+      lbSend: "Envoyer",
+      lbNamePh: "Ton nom",
+      lbEmpty: "Aucun record — sois le premier ! 🚄",
+      lbNeed: "Mesure d'abord au moins 30 km/h au GPS pendant 30 s.",
+      lbSent: "Envoyé ! {r}ᵉ de tous les temps 🎉",
+      lbFail: "La mesure n'a pas été acceptée.",
+      lbRate: "Trop d'envois — réessaie plus tard.",
+      lbError: "Classement inaccessible.",
+      lbDaily: "TOP DU JOUR — 30 DERNIERS JOURS",
       share: 'Partager', copied: 'Lien copié !',
       shareText: 'On roule à {v} km/h en Shinkansen ! 🚄',
       avg: 'MOYENNE', dist: 'DISTANCE', chart: 'DERNIÈRES 5 MIN', scale: 'ÉCHELLE'
@@ -436,6 +605,20 @@
       noGeo: 'Tu navegador no admite geolocalización.',
       tunnel: '¿Túnel? Señal GPS perdida — habitual en el Shinkansen. Esperando… 🕳️',
       coarse: 'Por ahora solo hay una posición aproximada (sin señal de satélite) — acerca el móvil a la ventana y comprueba que la ubicación precisa esté activada para el navegador.',
+      lbTitle: "Clasificación",
+      lbToday: "HOY",
+      lbWeek: "SEMANA",
+      lbMonth: "MES",
+      lbAll: "HISTÓRICO",
+      lbSend: "Enviar",
+      lbNamePh: "Tu nombre",
+      lbEmpty: "Aún no hay récords — ¡sé el primero! 🚄",
+      lbNeed: "Primero mide al menos 30 km/h con GPS durante 30 s.",
+      lbSent: "¡Enviado! Puesto {r} histórico 🎉",
+      lbFail: "La medición no fue aceptada.",
+      lbRate: "Demasiados envíos — inténtalo más tarde.",
+      lbError: "No se pudo conectar con la clasificación.",
+      lbDaily: "TOP DIARIO — ÚLTIMOS 30 DÍAS",
       share: 'Compartir', copied: '¡Enlace copiado!',
       shareText: '¡Vamos a {v} km/h en el Shinkansen ahora mismo! 🚄',
       avg: 'MEDIA', dist: 'DISTANCIA', chart: 'ÚLTIMOS 5 MIN', scale: 'ESCALA'
@@ -456,6 +639,20 @@
       noGeo: '您的瀏覽器不支援定位。',
       tunnel: '隧道？GPS訊號中斷，新幹線上很常見。等待中… 🕳️',
       coarse: '目前只能取得粗略位置（尚未連接衛星）。請將手機靠近車窗，並確認瀏覽器已開啟「精確位置」。',
+      lbTitle: "排行榜",
+      lbToday: "今天",
+      lbWeek: "本週",
+      lbMonth: "本月",
+      lbAll: "歷史",
+      lbSend: "提交",
+      lbNamePh: "你的名字",
+      lbEmpty: "還沒有紀錄，來當第一名吧！🚄",
+      lbNeed: "請先用GPS連續測得30 km/h以上至少30秒。",
+      lbSent: "已提交！歷史第{r}名 🎉",
+      lbFail: "測量數據未通過驗證。",
+      lbRate: "提交太頻繁，請稍後再試。",
+      lbError: "無法連接排行榜。",
+      lbDaily: "每日最高 · 最近30天",
       share: '分享', copied: '連結已複製！',
       shareText: '我們搭乘的新幹線現在時速{v}公里！🚄',
       avg: '平均', dist: '距離', chart: '最近5分鐘', scale: '量程'
@@ -512,7 +709,17 @@
     distLabel: document.getElementById('distLabel'),
     chartTitle: document.getElementById('chartTitle'),
     scaleLabel: document.getElementById('scaleLabel'),
-    subSpeed: document.getElementById('subSpeed')
+    subSpeed: document.getElementById('subSpeed'),
+    lbBtn: document.getElementById('lbBtn'),
+    lbPanel: document.getElementById('lbPanel'),
+    lbTitle: document.getElementById('lbTitle'),
+    lbClose: document.getElementById('lbClose'),
+    lbList: document.getElementById('lbList'),
+    lbDaily: document.getElementById('lbDaily'),
+    lbDailyTitle: document.getElementById('lbDailyTitle'),
+    lbName: document.getElementById('lbName'),
+    lbSend: document.getElementById('lbSend'),
+    lbNote: document.getElementById('lbNote')
   };
 
   // Klistra in din Buy Me a Coffee/Ko-fi-länk här så dyker ☕-knappen upp i sidfoten
@@ -601,6 +808,16 @@
     els.scaleLabel.textContent = t('scale');
     els.status.textContent = t(statusKey);
     els.status.className = statusErr ? 'err' : '';
+    els.lbBtn.textContent = '🏆 ' + t('lbTitle');
+    els.lbTitle.textContent = '🏆 ' + t('lbTitle');
+    els.lbName.placeholder = t('lbNamePh');
+    els.lbSend.textContent = t('lbSend');
+    els.lbDailyTitle.textContent = t('lbDaily');
+    var tabMap = { today: 'lbToday', week: 'lbWeek', month: 'lbMonth', alltime: 'lbAll' };
+    var tabs = document.querySelectorAll('.lb-tab');
+    for (var ti = 0; ti < tabs.length; ti++) {
+      tabs[ti].textContent = t(tabMap[tabs[ti].getAttribute('data-p')]);
+    }
   }
   els.langSel.addEventListener('change', function () {
     lang = els.langSel.value;
@@ -700,7 +917,7 @@
   }
 
   // ---------- measurement ----------
-  function ingest(kmh, accM, distM, dtS) {
+  function ingest(kmh, accM, distM, dtS, real) {
     if (kmh < 1) kmh = 0;                    // GPS-brus vid stillastående
     if (kmh > 1300) return;                  // orimligt — släng
     var filtered = despike(kmh);
@@ -709,6 +926,13 @@
       return;                                // spik under utredning — vänta på bekräftelse
     }
     kmh = filtered;
+    if (real && accM != null && accM <= 60) {
+      // mätspår för topplistan (endast riktig GPS, aldrig demo)
+      sessionSamples.push({ t: Date.now(), kmh: Math.round(kmh * 10) / 10, acc: Math.round(accM) });
+      var sCut = Date.now() - 15 * 60 * 1000;
+      while (sessionSamples.length && sessionSamples[0].t < sCut) sessionSamples.shift();
+      if (kmh > bestReal) bestReal = kmh;
+    }
     targetKmh = kmh;
     if (kmh > maxKmh) maxKmh = kmh;
     if (scaleMode === 'auto') {
@@ -758,7 +982,7 @@
     }
 
     if (kmh != null) {
-      ingest(kmh, c.accuracy, distM, dtS);
+      ingest(kmh, c.accuracy, distM, dtS, true);
       setStatus(kmh < 1 ? 'fixOkMove' : 'live');
     } else {
       els.acc.innerHTML = '±' + Math.round(c.accuracy) + '<small>m</small>';
@@ -1011,6 +1235,141 @@
     drawChart();
   }
   requestAnimationFrame(frame);
+
+  // ---------- topplista ----------
+  var LB_URL = 'https://mrcuhsuavhysldstkksu.supabase.co/functions/v1';
+  var LB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yY3Voc3Vhdmh5c2xkc3Rra3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxOTI2MDMsImV4cCI6MjA4NDc2ODYwM30.kvglS0TiwZUKbOJLqMBRht_smF6AdFs1gj75uSyNpFA';
+  var sessionSamples = [];   // riktiga GPS-sampel {t, kmh, acc} — grunden för inskick
+  var bestReal = 0;          // högsta riktiga GPS-fart denna session
+  var lbPeriod = 'today';
+  var lbData = null;
+
+  function lbHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + LB_KEY, 'apikey': LB_KEY };
+  }
+
+  function lbFetch() {
+    fetch(LB_URL + '/shinkansen-leaderboard', { headers: lbHeaders() })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { lbData = d; renderLb(); })
+      .catch(function () {
+        els.lbList.innerHTML = '';
+        els.lbNote.textContent = t('lbError');
+      });
+  }
+
+  function renderLb() {
+    if (!lbData) return;
+    var rows = lbData[lbPeriod] || [];
+    els.lbList.innerHTML = '';
+    if (!rows.length) {
+      var empty = document.createElement('li');
+      empty.className = 'lb-empty';
+      empty.textContent = t('lbEmpty');
+      els.lbList.appendChild(empty);
+    } else {
+      var medals = ['🥇', '🥈', '🥉'];
+      for (var i = 0; i < rows.length; i++) {
+        var li = document.createElement('li');
+        var rank = document.createElement('span');
+        rank.className = 'lb-rank';
+        rank.textContent = medals[i] || String(i + 1);
+        var nm = document.createElement('span');
+        nm.className = 'lb-nm';
+        nm.textContent = rows[i].name;   // textContent = XSS-säkert
+        var val = document.createElement('span');
+        val.className = 'lb-kmh';
+        val.textContent = Math.round(rows[i].kmh) + ' km/h';
+        li.appendChild(rank); li.appendChild(nm); li.appendChild(val);
+        els.lbList.appendChild(li);
+      }
+    }
+    var daily = lbData.daily || [];
+    els.lbDaily.innerHTML = '';
+    var maxD = 0;
+    for (var j = 0; j < daily.length; j++) if (daily[j].kmh > maxD) maxD = daily[j].kmh;
+    for (var k = 0; k < daily.length; k++) {
+      var bar = document.createElement('div');
+      bar.style.height = Math.max(4, Math.round((daily[k].kmh / (maxD || 1)) * 100)) + '%';
+      bar.title = daily[k].day + ': ' + Math.round(daily[k].kmh) + ' km/h';
+      els.lbDaily.appendChild(bar);
+    }
+    els.lbDailyTitle.style.display = daily.length ? '' : 'none';
+    els.lbDaily.style.display = daily.length ? '' : 'none';
+  }
+
+  function traceWindow() {
+    // sammanhängande fönster (glapp ≤ 10 s) runt max-samplet, ±90 s
+    if (!sessionSamples.length) return [];
+    var mi = 0;
+    for (var i = 1; i < sessionSamples.length; i++) if (sessionSamples[i].kmh > sessionSamples[mi].kmh) mi = i;
+    var lo = mi, hi = mi;
+    while (lo > 0 && sessionSamples[lo].t - sessionSamples[lo - 1].t <= 10000 &&
+           sessionSamples[mi].t - sessionSamples[lo - 1].t <= 90000) lo--;
+    while (hi < sessionSamples.length - 1 && sessionSamples[hi + 1].t - sessionSamples[hi].t <= 10000 &&
+           sessionSamples[hi + 1].t - sessionSamples[mi].t <= 90000) hi++;
+    return sessionSamples.slice(lo, hi + 1);
+  }
+
+  function lbSubmit() {
+    var name = els.lbName.value.trim();
+    if (!name) { els.lbName.focus(); return; }
+    lsSet('shinkansen.name', name);
+    var win = traceWindow();
+    if (DEMO || bestReal < 30 || win.length < 15 || (win[win.length - 1].t - win[0].t) < 30000) {
+      els.lbNote.textContent = t('lbNeed');
+      return;
+    }
+    var maxK = 0;
+    for (var i = 0; i < win.length; i++) if (win[i].kmh > maxK) maxK = win[i].kmh;
+    els.lbSend.disabled = true;
+    fetch(LB_URL + '/shinkansen-submit', {
+      method: 'POST',
+      headers: lbHeaders(),
+      body: JSON.stringify({ name: name, kmh: maxK, samples: win })
+    }).then(function (r) {
+      return r.json().then(function (j) { return { status: r.status, j: j }; });
+    }).then(function (res) {
+      els.lbSend.disabled = false;
+      if (res.j && res.j.ok) {
+        lbFetch();
+        els.lbNote.textContent = t('lbSent').replace('{r}', res.j.rank);
+      } else {
+        els.lbNote.textContent = res.status === 429 ? t('lbRate') : t('lbFail');
+      }
+    }).catch(function () {
+      els.lbSend.disabled = false;
+      els.lbNote.textContent = t('lbError');
+    });
+  }
+
+  els.lbBtn.addEventListener('click', function () {
+    els.lbPanel.classList.remove('hidden');
+    els.lbNote.textContent = '';
+    els.lbList.innerHTML = '';
+    var loading = document.createElement('li');
+    loading.className = 'lb-empty';
+    loading.textContent = '…';
+    els.lbList.appendChild(loading);
+    lbFetch();
+  });
+  els.lbClose.addEventListener('click', function () {
+    els.lbPanel.classList.add('hidden');
+  });
+  var lbTabs = document.querySelectorAll('.lb-tab');
+  for (var lti = 0; lti < lbTabs.length; lti++) {
+    (function (tab) {
+      tab.addEventListener('click', function () {
+        lbPeriod = tab.getAttribute('data-p');
+        for (var x = 0; x < lbTabs.length; x++) {
+          lbTabs[x].className = 'lb-tab' + (lbTabs[x] === tab ? ' active' : '');
+        }
+        renderLb();
+      });
+    })(lbTabs[lti]);
+  }
+  els.lbSend.addEventListener('click', lbSubmit);
+  els.lbName.value = lsGet('shinkansen.name') || '';
 
   // ---------- start ----------
   var DEMO = /[?&]demo=1/.test(location.search);   // dolt testläge: ?demo=1
