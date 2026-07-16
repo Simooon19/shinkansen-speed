@@ -1018,14 +1018,15 @@
     var t0 = Date.now();
     measuring = true;
     if (demoTimer) clearInterval(demoTimer);
+    setStatus('');                                            // ingen statusrad i demo —
+    els.acc.textContent = 'DEMO';                             // markören sitter i GPS-rutan istället
     demoTimer = setInterval(function () {
       var el = (Date.now() - t0) / 1000;
       var demoTop = scaleMode === 'auto' ? 285 : MAX_KMH * 0.82;
       var base = Math.min(demoTop, el * 9);                   // accelerera mot Shinkansen-fart / ~82 % av vald skala
-      var kmh = Math.max(0, base + Math.sin(el / 7) * 12 + (Math.random() - 0.5) * 4);
-      ingest(kmh, 8, kmh / 3.6, 1);
-      setStatus('demoStatus');
-    }, 1000);
+      var kmh = Math.max(0, base + Math.sin(el / 7) * 8 + Math.sin(el / 2.3) * 2);  // deterministisk, mjuk våg
+      ingest(kmh, null, kmh / 3.6 * 0.2, 0.2);
+    }, 200);
     requestWakeLock();
   }
 
