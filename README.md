@@ -1,0 +1,40 @@
+# 新幹線 Shinkansen Speed 🚄
+
+**Live GPS speedometer in your browser — see how fast your bullet train is really going.**
+
+### ▶ [simooon19.github.io/shinkansen-speed](https://simooon19.github.io/shinkansen-speed/)
+
+![Shinkansen Speed](og.png)
+
+Open the link on your phone, tap **Start**, allow location access, and watch the needle climb toward 300 km/h. No app, no install, no tracking — everything runs locally in your browser.
+
+## Features
+
+- **Live speed** from your phone's GPS (Doppler speed when available, position-delta fallback)
+- **Max / average speed, distance travelled** and GPS accuracy
+- **Speed history chart** (last 5 minutes)
+- **Adjustable gauge scale** — 350 (Shinkansen), 600 (maglev), 1000 km/h (aircraft)
+- **8 languages**, auto-detected from your phone: English, 日本語, Svenska, 中文, 한국어, Deutsch, Français, Español
+- **mph / m/s / Mach** readout
+- **Milestone confetti** at 200, 285, 320 and 500 km/h 🎉
+- **Tunnel detection** — GPS dropouts at speed are flagged as tunnels (you'll see plenty on the Tōkaidō line)
+- **Screen wake lock** so the display stays on
+- **Share button** that includes your current speed
+- Works for any train, car, plane or ferry — not just the Shinkansen
+
+## Tips
+
+- GPS works best **near a window**
+- Speed drops out in tunnels — the value freezes until the signal returns
+- Tōkaidō Shinkansen (Nozomi) cruises at ~285 km/h; Tōhoku (Hayabusa) reaches 320 km/h
+
+## Tech
+
+A single self-contained `index.html` — no frameworks, no build step, no external requests. Uses the Geolocation API, Screen Wake Lock API, Web Share API, SVG and canvas. Hosted on GitHub Pages.
+
+- [`poster.html`](poster.html) — printable A4 QR poster
+- [`og.html`](og.html) — social preview image template
+
+## License
+
+MIT — see [LICENSE](LICENSE).

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shinkansen Speed — printable QR poster (A4)</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 210mm; min-height: 297mm; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+    color: #0b1220;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    padding: 22mm 18mm;
+  }
+  .kanji { font-size: 15mm; letter-spacing: 0.35em; text-indent: 0.35em; color: #1a9e7f; font-weight: 700; }
+  .title { font-size: 11mm; font-weight: 800; margin-top: 6mm; line-height: 1.2; }
+  .title-ja { font-size: 8mm; font-weight: 700; margin-top: 4mm; color: #333; }
+  .qr { width: 88mm; height: 88mm; margin-top: 12mm; }
+  .scan { font-size: 6mm; font-weight: 700; margin-top: 10mm; }
+  .scan-ja { font-size: 5mm; color: #444; margin-top: 2mm; }
+  .url {
+    font-size: 5.5mm; font-weight: 600; color: #1a9e7f;
+    border: 0.8mm solid #1a9e7f; border-radius: 99mm;
+    padding: 3mm 9mm; margin-top: 9mm;
+  }
+  .foot { margin-top: auto; font-size: 3.8mm; color: #666; line-height: 1.6; }
+  .train { font-size: 12mm; margin-top: 8mm; }
+</style>
+</head>
+<body>
+  <div class="kanji">新幹線</div>
+  <div class="title">How fast is this train<br>going right now?</div>
+  <div class="title-ja">この新幹線、いま何キロ？</div>
+  <img class="qr" src="qr.svg" alt="QR code to simooon19.github.io/shinkansen-speed">
+  <div class="scan">Scan → watch your live speed 🚄</div>
+  <div class="scan-ja">スキャンして、いまの速度をライブでチェック！</div>
+  <div class="url">simooon19.github.io/shinkansen-speed</div>
+  <div class="foot">
+    Free web app ・ uses your phone's GPS ・ no install ・ 8 languages<br>
+    無料ウェブアプリ ・ スマホのGPSを使用 ・ インストール不要 ・ 8言語対応
+  </div>
+</body>
+</html>

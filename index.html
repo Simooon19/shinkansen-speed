@@ -6,13 +6,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b1220">
-<title>新幹線 Speed — Shinkansen-hastighetsmätare</title>
+<title>新幹線 Shinkansen Speed — Live GPS Speedometer</title>
+<meta name="description" content="See how fast your Shinkansen is going — live GPS speedometer in your browser. No app needed. 8 languages.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://simooon19.github.io/shinkansen-speed/">
+<meta property="og:title" content="How fast is your Shinkansen going right now? 🚄">
+<meta property="og:description" content="Open on your phone, tap Start, and watch it hit 300 km/h. Free web app — no install, works in 8 languages.">
+<meta property="og:image" content="https://simooon19.github.io/shinkansen-speed/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚄</text></svg>">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
     background: radial-gradient(1200px 800px at 50% -10%, #14213d 0%, #0b1220 55%, #070b14 100%);
     color: #e8edf7;
     display: flex;
@@ -26,6 +35,20 @@
   .kanji { font-size: 15px; letter-spacing: 0.5em; color: #7fd1c0; text-indent: 0.5em; }
   h1 { font-size: 19px; font-weight: 700; letter-spacing: 0.06em; margin-top: 2px; }
   h1 .thin { font-weight: 300; color: #93a3bd; }
+
+  #langSel {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    right: 12px;
+    z-index: 5;
+    background: rgba(255,255,255,0.06);
+    color: #93a3bd;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 9px;
+    font-size: 12px;
+    padding: 5px 7px;
+    -webkit-appearance: none; appearance: none;
+  }
 
   .gauge-wrap { position: relative; width: min(88vw, 400px); margin-top: 6px; }
   .gauge-wrap svg { width: 100%; height: auto; display: block; }
@@ -44,6 +67,18 @@
     text-shadow: 0 0 34px rgba(127, 209, 192, 0.35);
   }
   .unit { font-size: 17px; color: #93a3bd; letter-spacing: 0.28em; margin-top: 6px; text-indent: 0.28em; }
+  .subspeed { font-size: 11.5px; color: #5c6b85; margin-top: 5px; font-variant-numeric: tabular-nums; }
+
+  .toast {
+    position: fixed; top: 16%; left: 50%; transform: translateX(-50%) translateY(-8px);
+    background: rgba(20, 33, 61, 0.92);
+    border: 1px solid rgba(127, 209, 192, 0.5);
+    color: #e8edf7; font-size: 17px; font-weight: 800;
+    border-radius: 999px; padding: 11px 26px;
+    z-index: 30; opacity: 0; transition: opacity .35s, transform .35s;
+    pointer-events: none; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   .stats {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
@@ -56,7 +91,7 @@
     padding: 10px 4px 9px;
     text-align: center;
   }
-  .stat .label { font-size: 10px; letter-spacing: 0.14em; color: #8fa0ba; }
+  .stat .label { font-size: 10px; letter-spacing: 0.1em; color: #8fa0ba; white-space: nowrap; overflow: hidden; }
   .stat .value { font-size: 19px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
   .stat .value small { font-size: 10px; font-weight: 400; color: #8fa0ba; margin-left: 2px; }
   #maxVal { color: #ff8fb1; }
@@ -70,11 +105,45 @@
     border-radius: 12px;
   }
 
+  .scale-row {
+    display: flex; align-items: center; justify-content: space-between;
+    width: min(92vw, 430px); margin-top: 12px;
+  }
+  .scale-label { font-size: 10px; letter-spacing: 0.14em; color: #8fa0ba; }
+  .scale-btns { display: flex; gap: 6px; }
+  .scale-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #93a3bd;
+    font-size: 12.5px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+  .scale-btn.active {
+    background: rgba(127, 209, 192, 0.16);
+    border-color: rgba(127, 209, 192, 0.55);
+    color: #8ee8d2;
+  }
+
   #status {
     margin-top: 12px; font-size: 12.5px; color: #93a3bd; text-align: center;
     min-height: 1.4em; max-width: 92vw; line-height: 1.45;
   }
   #status.err { color: #ff9d9d; }
+
+  .share-btn {
+    margin-top: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: #c9d4e8;
+    font-size: 13.5px; font-weight: 600;
+    border-radius: 999px;
+    padding: 9px 26px;
+    cursor: pointer;
+  }
+  .share-btn:active { transform: scale(0.97); }
 
   .overlay {
     position: fixed; inset: 0; z-index: 10;
@@ -102,10 +171,24 @@
   }
   .hidden { display: none !important; }
 
-  footer { margin-top: auto; padding-top: 14px; font-size: 10.5px; color: #5c6b85; letter-spacing: 0.08em; }
+  footer { margin-top: auto; padding-top: 14px; font-size: 11.5px; color: #5c6b85; letter-spacing: 0.04em; }
+  footer a { color: #7fd1c0; text-decoration: none; }
 </style>
 </head>
 <body>
+
+<canvas id="speedlines" style="position:fixed;inset:0;z-index:-1;pointer-events:none;"></canvas>
+
+<select id="langSel" aria-label="Language">
+  <option value="en">English</option>
+  <option value="ja">日本語</option>
+  <option value="sv">Svenska</option>
+  <option value="zh">中文</option>
+  <option value="ko">한국어</option>
+  <option value="de">Deutsch</option>
+  <option value="fr">Français</option>
+  <option value="es">Español</option>
+</select>
 
 <header>
   <div class="kanji">新幹線</div>
@@ -129,37 +212,212 @@
   <div class="readout">
     <div class="speed" id="speedVal">0</div>
     <div class="unit">KM/H</div>
+    <div class="subspeed" id="subSpeed">0 mph ・ 0 m/s ・ M 0.00</div>
   </div>
 </div>
 
 <div class="stats">
   <div class="stat"><div class="label">MAX</div><div class="value" id="maxVal">0</div></div>
-  <div class="stat"><div class="label">MEDEL</div><div class="value" id="avgVal">0</div></div>
-  <div class="stat"><div class="label">DISTANS</div><div class="value" id="distVal">0.0<small>km</small></div></div>
+  <div class="stat"><div class="label" id="avgLabel">MEDEL</div><div class="value" id="avgVal">0</div></div>
+  <div class="stat"><div class="label" id="distLabel">DISTANS</div><div class="value" id="distVal">0.0<small>km</small></div></div>
   <div class="stat"><div class="label">GPS</div><div class="value" id="accVal">–<small>m</small></div></div>
 </div>
 
 <div class="chart-wrap">
-  <div class="chart-title">SENASTE 5 MIN</div>
+  <div class="chart-title" id="chartTitle">SENASTE 5 MIN</div>
   <canvas id="chart"></canvas>
 </div>
 
-<div id="status">Tryck på Starta för att börja mäta.</div>
+<div class="scale-row">
+  <span class="scale-label" id="scaleLabel">SKALA</span>
+  <div class="scale-btns">
+    <button class="scale-btn active" data-max="350">350</button>
+    <button class="scale-btn" data-max="600">600</button>
+    <button class="scale-btn" data-max="1000">1000</button>
+  </div>
+</div>
+
+<div id="status"></div>
+<button class="share-btn" id="shareBtn">Dela</button>
 
 <div class="overlay" id="overlay">
   <div class="big-emoji">🚄</div>
-  <p>Mäter din hastighet med iPhonens GPS. Godkänn platsåtkomst när Safari frågar — funkar bäst vid fönstret.</p>
+  <p id="ovText"></p>
   <button class="btn" id="startBtn">Starta</button>
-  <button class="btn-demo" id="demoBtn">Demo-läge (utan GPS)</button>
+  <button class="btn-demo" id="demoBtn">Demo</button>
 </div>
 
-<footer>SHINKANSEN SPEEDOMETER ・ 頑張って</footer>
+<footer>
+  <a href="https://github.com/Simooon19/shinkansen-speed" target="_blank" rel="noopener">⭐ GitHub</a><span id="coffeeWrap" class="hidden"> ・ <a id="coffeeLink" href="#" target="_blank" rel="noopener">☕ Buy me a coffee</a></span>
+  ・ 頑張って
+</footer>
 
 <script>
 (function () {
   'use strict';
 
-  var MAX_KMH = 350;          // gauge scale (Tohoku-shinkansen toppar på 320)
+  // ---------- i18n ----------
+  var I18N = {
+    en: {
+      ovText: "Measures your speed with your phone's GPS. Allow location access when your browser asks — works best near a window.",
+      start: 'Start', demo: 'Demo mode (no GPS)',
+      idle: 'Tap Start to begin measuring.',
+      fixWait: 'Getting GPS fix…',
+      fixOkMove: 'GPS fix OK — waiting for movement…',
+      live: 'Measuring live via GPS.',
+      fixOkSpeed: 'GPS fix OK — waiting for speed data…',
+      denied: 'Location access denied. Enable it: Settings → Privacy → Location Services → Safari Websites → “While Using”. Then reload the page.',
+      unavailable: 'No GPS signal right now — try moving closer to a window. Retrying…',
+      timeout: 'GPS timeout — retrying…',
+      demoStatus: 'Demo mode — simulated speed.',
+      noGeo: "Your browser doesn't support geolocation.",
+      tunnel: 'Tunnel? GPS signal lost — common on the Shinkansen. Waiting… 🕳️',
+      share: 'Share', copied: 'Link copied!',
+      shareText: "We're doing {v} km/h on the Shinkansen right now! 🚄",
+      avg: 'AVG', dist: 'DISTANCE', chart: 'LAST 5 MIN', scale: 'SCALE'
+    },
+    sv: {
+      ovText: 'Mäter din hastighet med telefonens GPS. Godkänn platsåtkomst när webbläsaren frågar — funkar bäst vid fönstret.',
+      start: 'Starta', demo: 'Demo-läge (utan GPS)',
+      idle: 'Tryck på Starta för att börja mäta.',
+      fixWait: 'Hämtar GPS-fix …',
+      fixOkMove: 'GPS-fix OK — väntar på rörelse …',
+      live: 'Mäter live via GPS.',
+      fixOkSpeed: 'GPS-fix OK — väntar på hastighetsdata …',
+      denied: 'Platsåtkomst nekad. Aktivera: Inställningar → Integritet → Platstjänster → Safari-webbplatser → ”Vid användning”. Ladda sedan om sidan.',
+      unavailable: 'Ingen GPS-signal just nu — testa närmare fönstret. Försöker igen …',
+      timeout: 'GPS-timeout — försöker igen …',
+      demoStatus: 'Demo-läge — simulerad hastighet.',
+      noGeo: 'Din webbläsare saknar stöd för platstjänster.',
+      tunnel: 'Tunnel? GPS-signalen borta — vanligt på Shinkansen. Väntar … 🕳️',
+      share: 'Dela', copied: 'Länk kopierad!',
+      shareText: 'Vi kör {v} km/h på Shinkansen just nu! 🚄',
+      avg: 'MEDEL', dist: 'DISTANS', chart: 'SENASTE 5 MIN', scale: 'SKALA'
+    },
+    ja: {
+      ovText: 'スマホのGPSで速度を測定します。位置情報の許可を求められたら許可してください。窓際が最適です。',
+      start: 'スタート', demo: 'デモモード（GPSなし）',
+      idle: 'スタートを押すと計測を開始します。',
+      fixWait: 'GPS取得中…',
+      fixOkMove: 'GPS取得OK — 動き出すのを待っています…',
+      live: 'GPSでライブ計測中。',
+      fixOkSpeed: 'GPS取得OK — 速度データを待っています…',
+      denied: '位置情報が拒否されました。設定 → プライバシー → 位置情報サービス → Safariのウェブサイト →「使用中のみ」を有効にして、ページを再読み込みしてください。',
+      unavailable: 'GPS信号がありません — 窓際でお試しください。再試行中…',
+      timeout: 'GPSタイムアウト — 再試行中…',
+      demoStatus: 'デモモード — シミュレーション速度です。',
+      noGeo: 'お使いのブラウザは位置情報に対応していません。',
+      tunnel: 'トンネル？GPS信号が途切れました — 新幹線ではよくあります。待機中… 🕳️',
+      share: '共有', copied: 'リンクをコピーしました！',
+      shareText: 'いま新幹線で時速{v}kmで走行中！🚄',
+      avg: '平均', dist: '距離', chart: '直近5分', scale: 'スケール'
+    },
+    zh: {
+      ovText: '使用手机GPS测量速度。浏览器询问时请允许位置权限。靠窗效果最佳。',
+      start: '开始', demo: '演示模式（无GPS）',
+      idle: '点击开始进行测速。',
+      fixWait: '正在获取GPS信号…',
+      fixOkMove: 'GPS已就绪 — 等待移动…',
+      live: '正在通过GPS实时测速。',
+      fixOkSpeed: 'GPS已就绪 — 等待速度数据…',
+      denied: '位置权限被拒绝。请开启：设置 → 隐私 → 定位服务 → Safari网站 → “使用App期间”，然后刷新页面。',
+      unavailable: '当前无GPS信号 — 请靠近窗户。正在重试…',
+      timeout: 'GPS超时 — 正在重试…',
+      demoStatus: '演示模式 — 模拟速度。',
+      noGeo: '您的浏览器不支持定位。',
+      tunnel: '隧道？GPS信号丢失 — 新干线上很常见。等待中… 🕳️',
+      share: '分享', copied: '链接已复制！',
+      shareText: '我们乘坐的新干线现在时速{v}公里！🚄',
+      avg: '平均', dist: '距离', chart: '最近5分钟', scale: '量程'
+    },
+    ko: {
+      ovText: '휴대폰 GPS로 속도를 측정합니다. 위치 권한을 허용해 주세요. 창가에서 가장 잘 작동합니다.',
+      start: '시작', demo: '데모 모드 (GPS 없음)',
+      idle: '시작을 눌러 측정을 시작하세요.',
+      fixWait: 'GPS 신호 수신 중…',
+      fixOkMove: 'GPS 준비 완료 — 움직임을 기다리는 중…',
+      live: 'GPS로 실시간 측정 중.',
+      fixOkSpeed: 'GPS 준비 완료 — 속도 데이터 대기 중…',
+      denied: "위치 권한이 거부되었습니다. 설정 → 개인정보 보호 → 위치 서비스 → Safari 웹사이트 → '앱을 사용하는 동안'을 활성화한 후 페이지를 새로고침하세요.",
+      unavailable: 'GPS 신호가 없습니다 — 창가로 이동해 보세요. 재시도 중…',
+      timeout: 'GPS 시간 초과 — 재시도 중…',
+      demoStatus: '데모 모드 — 시뮬레이션 속도입니다.',
+      noGeo: '브라우저가 위치 정보를 지원하지 않습니다.',
+      tunnel: '터널? GPS 신호가 끊겼습니다 — 신칸센에서는 흔한 일입니다. 대기 중… 🕳️',
+      share: '공유', copied: '링크가 복사되었습니다!',
+      shareText: '지금 신칸센으로 시속 {v}km로 달리는 중! 🚄',
+      avg: '평균', dist: '거리', chart: '최근 5분', scale: '범위'
+    },
+    de: {
+      ovText: 'Misst deine Geschwindigkeit per GPS. Erlaube den Standortzugriff, wenn der Browser fragt — am Fenster klappt es am besten.',
+      start: 'Start', demo: 'Demo-Modus (ohne GPS)',
+      idle: 'Tippe auf Start, um zu messen.',
+      fixWait: 'GPS-Signal wird gesucht…',
+      fixOkMove: 'GPS OK — warte auf Bewegung…',
+      live: 'Live-Messung per GPS.',
+      fixOkSpeed: 'GPS OK — warte auf Geschwindigkeitsdaten…',
+      denied: 'Standortzugriff verweigert. Aktiviere: Einstellungen → Datenschutz → Ortungsdienste → Safari-Websites → „Beim Verwenden“. Danach Seite neu laden.',
+      unavailable: 'Kein GPS-Signal — versuche es näher am Fenster. Neuer Versuch…',
+      timeout: 'GPS-Timeout — neuer Versuch…',
+      demoStatus: 'Demo-Modus — simulierte Geschwindigkeit.',
+      noGeo: 'Dein Browser unterstützt keine Ortung.',
+      tunnel: 'Tunnel? GPS-Signal weg — im Shinkansen ganz normal. Warte… 🕳️',
+      share: 'Teilen', copied: 'Link kopiert!',
+      shareText: 'Wir fahren gerade {v} km/h im Shinkansen! 🚄',
+      avg: 'SCHNITT', dist: 'DISTANZ', chart: 'LETZTE 5 MIN', scale: 'SKALA'
+    },
+    fr: {
+      ovText: "Mesure ta vitesse via le GPS du téléphone. Autorise la localisation quand le navigateur le demande — idéalement près de la fenêtre.",
+      start: 'Démarrer', demo: 'Mode démo (sans GPS)',
+      idle: 'Appuie sur Démarrer pour mesurer.',
+      fixWait: 'Recherche du signal GPS…',
+      fixOkMove: 'GPS OK — en attente de mouvement…',
+      live: 'Mesure en direct par GPS.',
+      fixOkSpeed: 'GPS OK — en attente des données de vitesse…',
+      denied: "Localisation refusée. Active : Réglages → Confidentialité → Service de localisation → Sites web Safari → « Lorsque l'app est active », puis recharge la page.",
+      unavailable: "Pas de signal GPS — rapproche-toi d'une fenêtre. Nouvel essai…",
+      timeout: 'Délai GPS dépassé — nouvel essai…',
+      demoStatus: 'Mode démo — vitesse simulée.',
+      noGeo: 'Ton navigateur ne prend pas en charge la géolocalisation.',
+      tunnel: 'Tunnel ? Signal GPS perdu — fréquent en Shinkansen. En attente… 🕳️',
+      share: 'Partager', copied: 'Lien copié !',
+      shareText: 'On roule à {v} km/h en Shinkansen ! 🚄',
+      avg: 'MOYENNE', dist: 'DISTANCE', chart: '5 DERN. MIN', scale: 'ÉCHELLE'
+    },
+    es: {
+      ovText: 'Mide tu velocidad con el GPS del móvil. Permite el acceso a la ubicación cuando el navegador lo pida — funciona mejor junto a la ventana.',
+      start: 'Iniciar', demo: 'Modo demo (sin GPS)',
+      idle: 'Pulsa Iniciar para empezar a medir.',
+      fixWait: 'Buscando señal GPS…',
+      fixOkMove: 'GPS OK — esperando movimiento…',
+      live: 'Midiendo en vivo por GPS.',
+      fixOkSpeed: 'GPS OK — esperando datos de velocidad…',
+      denied: 'Ubicación denegada. Actívala: Ajustes → Privacidad → Localización → Sitios web de Safari → «Al usarla», y recarga la página.',
+      unavailable: 'Sin señal GPS — acércate a una ventana. Reintentando…',
+      timeout: 'Tiempo de espera GPS agotado — reintentando…',
+      demoStatus: 'Modo demo — velocidad simulada.',
+      noGeo: 'Tu navegador no admite geolocalización.',
+      tunnel: '¿Túnel? Señal GPS perdida — habitual en el Shinkansen. Esperando… 🕳️',
+      share: 'Compartir', copied: '¡Enlace copiado!',
+      shareText: '¡Vamos a {v} km/h en el Shinkansen ahora mismo! 🚄',
+      avg: 'MEDIA', dist: 'DISTANCIA', chart: 'ÚLT. 5 MIN', scale: 'ESCALA'
+    }
+  };
+
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  var nav2 = (navigator.language || 'en').toLowerCase().slice(0, 2);
+  var lang = lsGet('lang') || (I18N[nav2] ? nav2 : 'en');
+  if (!I18N[lang]) lang = 'en';
+
+  function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || ''; }
+
+  // ---------- gauge config ----------
+  var SCALES = { 350: { minor: 25, label: 100 }, 600: { minor: 50, label: 200 }, 1000: { minor: 50, label: 200 } };
+  var MAX_KMH = parseInt(lsGet('scale'), 10);
+  if (!SCALES[MAX_KMH]) MAX_KMH = 350;
+
   var SWEEP = 240;            // degrees of arc
   var START_DEG = -120;       // 0 km/h position (0° = up)
   var CX = 150, CY = 150, R = 120;
@@ -176,8 +434,25 @@
     arcFg: document.getElementById('arcFg'),
     dot: document.getElementById('dot'),
     ticks: document.getElementById('ticks'),
-    chart: document.getElementById('chart')
+    chart: document.getElementById('chart'),
+    share: document.getElementById('shareBtn'),
+    langSel: document.getElementById('langSel'),
+    ovText: document.getElementById('ovText'),
+    startBtn: document.getElementById('startBtn'),
+    demoBtn: document.getElementById('demoBtn'),
+    avgLabel: document.getElementById('avgLabel'),
+    distLabel: document.getElementById('distLabel'),
+    chartTitle: document.getElementById('chartTitle'),
+    scaleLabel: document.getElementById('scaleLabel'),
+    subSpeed: document.getElementById('subSpeed')
   };
+
+  // Klistra in din Buy Me a Coffee/Ko-fi-länk här så dyker ☕-knappen upp i sidfoten
+  var DONATE_URL = '';
+  if (DONATE_URL) {
+    document.getElementById('coffeeLink').href = DONATE_URL;
+    document.getElementById('coffeeWrap').classList.remove('hidden');
+  }
 
   // ---------- gauge geometry ----------
   function polar(deg, r) {
@@ -196,30 +471,34 @@
   els.arcFg.style.strokeDasharray = ARC_LEN;
   els.arcFg.style.strokeDashoffset = ARC_LEN;
 
-  // ticks + labels
   var svgns = 'http://www.w3.org/2000/svg';
-  for (var v = 0; v <= MAX_KMH; v += 25) {
-    var deg = START_DEG + (v / MAX_KMH) * SWEEP;
-    var major = v % 50 === 0;
-    var o = polar(deg, R + 11), i = polar(deg, R + (major ? 3 : 7));
-    var line = document.createElementNS(svgns, 'line');
-    line.setAttribute('x1', o[0]); line.setAttribute('y1', o[1]);
-    line.setAttribute('x2', i[0]); line.setAttribute('y2', i[1]);
-    line.setAttribute('stroke', major ? 'rgba(232,237,247,0.5)' : 'rgba(232,237,247,0.2)');
-    line.setAttribute('stroke-width', major ? 2 : 1);
-    els.ticks.appendChild(line);
-    if (major && v % 100 === 0) {
-      var tp = polar(deg, R + 24);
-      var t = document.createElementNS(svgns, 'text');
-      t.setAttribute('x', tp[0]); t.setAttribute('y', tp[1]);
-      t.setAttribute('fill', 'rgba(147,163,189,0.8)');
-      t.setAttribute('font-size', '11');
-      t.setAttribute('text-anchor', 'middle');
-      t.setAttribute('dominant-baseline', 'middle');
-      t.textContent = v;
-      els.ticks.appendChild(t);
+  function rebuildTicks() {
+    while (els.ticks.firstChild) els.ticks.removeChild(els.ticks.firstChild);
+    var cfg = SCALES[MAX_KMH];
+    for (var v = 0; v <= MAX_KMH; v += cfg.minor) {
+      var deg = START_DEG + (v / MAX_KMH) * SWEEP;
+      var major = v % (cfg.minor * 2) === 0;
+      var o = polar(deg, R + 11), i = polar(deg, R + (major ? 3 : 7));
+      var line = document.createElementNS(svgns, 'line');
+      line.setAttribute('x1', o[0]); line.setAttribute('y1', o[1]);
+      line.setAttribute('x2', i[0]); line.setAttribute('y2', i[1]);
+      line.setAttribute('stroke', major ? 'rgba(232,237,247,0.5)' : 'rgba(232,237,247,0.2)');
+      line.setAttribute('stroke-width', major ? 2 : 1);
+      els.ticks.appendChild(line);
+      if (v % cfg.label === 0) {
+        var tp = polar(deg, R + 24);
+        var txt = document.createElementNS(svgns, 'text');
+        txt.setAttribute('x', tp[0]); txt.setAttribute('y', tp[1]);
+        txt.setAttribute('fill', 'rgba(147,163,189,0.8)');
+        txt.setAttribute('font-size', '11');
+        txt.setAttribute('text-anchor', 'middle');
+        txt.setAttribute('dominant-baseline', 'middle');
+        txt.textContent = v;
+        els.ticks.appendChild(txt);
+      }
     }
   }
+  rebuildTicks();
 
   // ---------- state ----------
   var displayKmh = 0;      // smoothed value actually shown
@@ -232,11 +511,36 @@
   var HISTORY_MS = 5 * 60 * 1000;
   var wakeLock = null;
   var demoTimer = null;
+  var statusKey = 'idle';
+  var statusErr = false;
 
-  function setStatus(msg, isErr) {
-    els.status.textContent = msg;
+  function setStatus(key, isErr) {
+    statusKey = key; statusErr = !!isErr;
+    els.status.textContent = t(key);
     els.status.className = isErr ? 'err' : '';
   }
+
+  // ---------- language ----------
+  function applyLang() {
+    document.documentElement.lang = lang;
+    els.langSel.value = lang;
+    els.ovText.textContent = t('ovText');
+    els.startBtn.textContent = t('start');
+    els.demoBtn.textContent = t('demo');
+    els.share.textContent = t('share');
+    els.avgLabel.textContent = t('avg');
+    els.distLabel.textContent = t('dist');
+    els.chartTitle.textContent = t('chart');
+    els.scaleLabel.textContent = t('scale');
+    els.status.textContent = t(statusKey);
+    els.status.className = statusErr ? 'err' : '';
+  }
+  els.langSel.addEventListener('change', function () {
+    lang = els.langSel.value;
+    lsSet('lang', lang);
+    applyLang();
+  });
+  applyLang();
 
   function haversine(lat1, lon1, lat2, lon2) {
     var rad = Math.PI / 180, R_E = 6371000;
@@ -247,12 +551,74 @@
     return 2 * R_E * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
+  // ---------- milestones ----------
+  var MILESTONES = [200, 285, 320, 500];
+  var msHit = {};
+
+  function toast(msg) {
+    var d = document.createElement('div');
+    d.className = 'toast';
+    d.textContent = msg;
+    document.body.appendChild(d);
+    setTimeout(function () { d.classList.add('show'); }, 20);
+    setTimeout(function () {
+      d.classList.remove('show');
+      setTimeout(function () { document.body.removeChild(d); }, 400);
+    }, 2600);
+  }
+
+  function confetti() {
+    var c = document.createElement('canvas');
+    c.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:25';
+    document.body.appendChild(c);
+    var dpr = window.devicePixelRatio || 1;
+    c.width = window.innerWidth * dpr; c.height = window.innerHeight * dpr;
+    var ctx = c.getContext('2d');
+    ctx.scale(dpr, dpr);
+    var cols = ['#8ee8d2', '#ff8fb1', '#ffd166', '#7fd1c0', '#ffffff'];
+    var ps = [];
+    for (var i = 0; i < 90; i++) {
+      ps.push({
+        x: window.innerWidth / 2, y: window.innerHeight * 0.35,
+        vx: (Math.random() - 0.5) * 10, vy: -Math.random() * 9 - 3,
+        s: Math.random() * 5 + 3, c: cols[i % cols.length],
+        r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3, life: 110
+      });
+    }
+    (function tick() {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      var alive = false;
+      for (var j = 0; j < ps.length; j++) {
+        var p = ps[j];
+        if (p.life <= 0 || p.y > window.innerHeight + 20) continue;
+        p.vy += 0.25; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life--;
+        alive = true;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.r);
+        ctx.globalAlpha = Math.min(1, p.life / 40);
+        ctx.fillStyle = p.c;
+        ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6);
+        ctx.restore();
+      }
+      if (alive) requestAnimationFrame(tick);
+      else document.body.removeChild(c);
+    })();
+  }
+
   // ---------- measurement ----------
   function ingest(kmh, accM, distM, dtS) {
     if (kmh < 1) kmh = 0;                    // GPS-brus vid stillastående
-    if (kmh > 500) return;                   // orimligt — släng
+    if (kmh > 1300) return;                  // orimligt — släng
     targetKmh = kmh;
     if (kmh > maxKmh) maxKmh = kmh;
+    for (var mi = 0; mi < MILESTONES.length; mi++) {
+      if (kmh >= MILESTONES[mi] && !msHit[MILESTONES[mi]]) {
+        msHit[MILESTONES[mi]] = true;
+        toast('🎉 ' + MILESTONES[mi] + ' km/h!');
+        confetti();
+      }
+    }
     if (distM != null && distM >= 0) totalDistM += distM;
     if (dtS != null && kmh > 2) movingTimeS += dtS;
     history.push({ t: Date.now(), kmh: kmh });
@@ -266,51 +632,46 @@
 
   function onPosition(pos) {
     var c = pos.coords;
-    var t = pos.timestamp;
+    var ts = pos.timestamp;
     var kmh = null, distM = null, dtS = null;
 
     if (lastFix) {
-      dtS = (t - lastFix.t) / 1000;
+      dtS = (ts - lastFix.t) / 1000;
       if (dtS > 0 && c.accuracy < 150 && lastFix.acc < 150) {
         distM = haversine(lastFix.lat, lastFix.lon, c.latitude, c.longitude);
       }
     }
 
-    if (typeof c.speed === 'number' && !isNaN(c.speed) && c.speed !== null && c.speed >= 0) {
+    if (typeof c.speed === 'number' && !isNaN(c.speed) && c.speed >= 0) {
       kmh = c.speed * 3.6;                   // Doppler-hastighet: bäst
     } else if (distM != null && dtS != null && dtS >= 0.8 && dtS < 30) {
       kmh = (distM / dtS) * 3.6;             // fallback: beräknad ur positioner
     }
 
-    lastFix = { lat: c.latitude, lon: c.longitude, t: t, acc: c.accuracy };
+    lastFix = { lat: c.latitude, lon: c.longitude, t: ts, acc: c.accuracy };
 
     if (kmh != null) {
       ingest(kmh, c.accuracy, distM, dtS);
-      setStatus(kmh < 1
-        ? 'GPS-fix OK — väntar på rörelse …'
-        : 'Mäter live via GPS.');
+      setStatus(kmh < 1 ? 'fixOkMove' : 'live');
     } else {
       els.acc.innerHTML = '±' + Math.round(c.accuracy) + '<small>m</small>';
-      setStatus('GPS-fix OK — väntar på hastighetsdata …');
+      setStatus('fixOkSpeed');
     }
   }
 
   function onGeoError(err) {
-    if (err.code === 1) {
-      setStatus('Platsåtkomst nekad. Aktivera: Inställningar → Integritet → Platstjänster → Safari-webbplatser → "Vid användning". Ladda sedan om sidan.', true);
-    } else if (err.code === 2) {
-      setStatus('Ingen GPS-signal just nu — testa närmare fönstret. Försöker igen …', true);
-    } else {
-      setStatus('GPS-timeout — försöker igen …', true);
-    }
+    if (err.code === 1) setStatus('denied', true);
+    else if (maxKmh > 50) setStatus('tunnel', false);   // signal borta i farten = troligen tunnel
+    else if (err.code === 2) setStatus('unavailable', true);
+    else setStatus('timeout', true);
   }
 
   function startGPS() {
     if (!('geolocation' in navigator)) {
-      setStatus('Din webbläsare saknar stöd för platstjänster.', true);
+      setStatus('noGeo', true);
       return;
     }
-    setStatus('Hämtar GPS-fix …');
+    setStatus('fixWait');
     navigator.geolocation.watchPosition(onPosition, onGeoError, {
       enableHighAccuracy: true,
       maximumAge: 0,
@@ -325,10 +686,10 @@
     if (demoTimer) clearInterval(demoTimer);
     demoTimer = setInterval(function () {
       var el = (Date.now() - t0) / 1000;
-      var base = Math.min(285, el * 9);                       // accelerera till ~285
+      var base = Math.min(MAX_KMH * 0.82, el * 9);            // accelerera mot ~82 % av skalan
       var kmh = Math.max(0, base + Math.sin(el / 7) * 12 + (Math.random() - 0.5) * 4);
       ingest(kmh, 8, kmh / 3.6, 1);
-      setStatus('Demo-läge — simulerad hastighet.');
+      setStatus('demoStatus');
     }, 1000);
     requestWakeLock();
   }
@@ -343,6 +704,39 @@
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible' && wakeLock !== null) requestWakeLock();
   });
+
+  // ---------- share ----------
+  els.share.addEventListener('click', function () {
+    var url = location.origin + location.pathname;
+    var text = t('shareText').replace('{v}', Math.round(displayKmh));
+    if (navigator.share) {
+      navigator.share({ title: document.title, text: text, url: url }).catch(function () {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(text + ' ' + url).then(function () {
+        els.share.textContent = t('copied');
+        setTimeout(function () { els.share.textContent = t('share'); }, 2000);
+      }).catch(function () {});
+    }
+  });
+
+  // ---------- scale ----------
+  var scaleBtns = document.querySelectorAll('.scale-btn');
+  function setScale(max) {
+    MAX_KMH = max;
+    lsSet('scale', String(max));
+    rebuildTicks();
+    for (var i = 0; i < scaleBtns.length; i++) {
+      scaleBtns[i].className = 'scale-btn' + (parseInt(scaleBtns[i].getAttribute('data-max'), 10) === max ? ' active' : '');
+    }
+  }
+  for (var i = 0; i < scaleBtns.length; i++) {
+    (function (btn) {
+      btn.addEventListener('click', function () {
+        setScale(parseInt(btn.getAttribute('data-max'), 10));
+      });
+    })(scaleBtns[i]);
+  }
+  setScale(MAX_KMH);
 
   // ---------- rendering ----------
   function updateStats() {
@@ -384,12 +778,70 @@
     ctx.fill();
   }
 
+  // ---------- speed-reactive visuals ----------
+  var slCanvas = document.getElementById('speedlines');
+  var slParts = [];
+
+  function lerpColor(f) {
+    // teal → guld → rosa
+    var c1, c2, t2;
+    if (f < 0.5) { c1 = [89, 201, 173]; c2 = [255, 209, 102]; t2 = f / 0.5; }
+    else { c1 = [255, 209, 102]; c2 = [255, 143, 177]; t2 = (f - 0.5) / 0.5; }
+    return [
+      Math.round(c1[0] + (c2[0] - c1[0]) * t2),
+      Math.round(c1[1] + (c2[1] - c1[1]) * t2),
+      Math.round(c1[2] + (c2[2] - c1[2]) * t2)
+    ];
+  }
+
+  function drawSpeedLines(kmh) {
+    var dpr = window.devicePixelRatio || 1;
+    var w = window.innerWidth, h = window.innerHeight;
+    if (slCanvas.width !== w * dpr || slCanvas.height !== h * dpr) {
+      slCanvas.width = w * dpr; slCanvas.height = h * dpr;
+    }
+    var ctx = slCanvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    var intensity = Math.min(1, Math.max(0, (kmh - 30) / 170));  // fadear in 30→200 km/h
+    if (intensity <= 0) return;
+    if (!slParts.length) {
+      for (var i = 0; i < 26; i++) {
+        slParts.push({ x: Math.random() * w, y: Math.random() * h, d: 0.4 + Math.random() * 0.8 });
+      }
+    }
+    var v = 2 + kmh * 0.09;
+    var len = 18 + kmh * 0.28;
+    var col = lerpColor(Math.min(1, kmh / 320));
+    for (var j = 0; j < slParts.length; j++) {
+      var p = slParts[j];
+      p.x -= v * p.d;
+      if (p.x < -len) { p.x = w + 30; p.y = Math.random() * h; }
+      ctx.strokeStyle = 'rgba(' + col[0] + ',' + col[1] + ',' + col[2] + ',' + (0.12 * intensity * p.d).toFixed(3) + ')';
+      ctx.lineWidth = p.d * 1.6;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + len * p.d, p.y);
+      ctx.stroke();
+    }
+  }
+
   function frame() {
     // mjuk animering mot senaste mätvärdet
     displayKmh += (targetKmh - displayKmh) * 0.12;
     if (Math.abs(displayKmh - targetKmh) < 0.05) displayKmh = targetKmh;
 
     els.speed.textContent = Math.round(displayKmh);
+
+    // glöd som skiftar färg och intensitet med farten (fullt utslag vid 320 km/h)
+    var gf = Math.min(1, displayKmh / 320);
+    var gc = lerpColor(gf);
+    els.speed.style.textShadow = '0 0 ' + Math.round(24 + gf * 32) + 'px rgba(' +
+      gc[0] + ',' + gc[1] + ',' + gc[2] + ',' + (0.3 + gf * 0.45).toFixed(2) + ')';
+
+    drawSpeedLines(displayKmh);
+    els.subSpeed.textContent = Math.round(displayKmh * 0.621371) + ' mph ・ ' +
+      Math.round(displayKmh / 3.6) + ' m/s ・ M ' + (displayKmh / 3.6 / 343).toFixed(2);
 
     var frac = Math.min(1, Math.max(0, displayKmh / MAX_KMH));
     els.arcFg.style.strokeDashoffset = ARC_LEN * (1 - frac);
@@ -408,11 +860,11 @@
   requestAnimationFrame(frame);
 
   // ---------- start ----------
-  document.getElementById('startBtn').addEventListener('click', function () {
+  els.startBtn.addEventListener('click', function () {
     els.overlay.classList.add('hidden');
     startGPS();
   });
-  document.getElementById('demoBtn').addEventListener('click', function () {
+  els.demoBtn.addEventListener('click', function () {
     els.overlay.classList.add('hidden');
     startDemo();
   });
