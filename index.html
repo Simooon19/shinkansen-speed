@@ -1014,16 +1014,28 @@
   }
 
   // ---------- demo mode ----------
+  function demoParam(name, def, min, max) {
+    var m = location.search.match(new RegExp('[?&]' + name + '=([0-9.]+)'));
+    var v = m ? parseFloat(m[1]) : def;
+    return isFinite(v) ? Math.min(max, Math.max(min, v)) : def;
+  }
+
   function startDemo() {
     var t0 = Date.now();
     measuring = true;
     if (demoTimer) clearInterval(demoTimer);
     setStatus('');                                            // ingen statusrad i demo —
     els.acc.textContent = 'DEMO';                             // markören sitter i GPS-rutan istället
+    var accel = demoParam('accel', 9, 0.5, 50);               // km/h per sekund (äkta Shinkansen ≈ 2.6)
+    var startKmh = demoParam('start', 0, 0, 340);             // börja i fart för kortare tagningar
+    for (var mi = 0; mi < MILESTONES.length; mi++) {
+      if (MILESTONES[mi] <= startKmh + 5) msHit[MILESTONES[mi]] = true;   // ingen retro-konfetti vid start i fart
+    }
     demoTimer = setInterval(function () {
       var el = (Date.now() - t0) / 1000;
       var demoTop = scaleMode === 'auto' ? 285 : MAX_KMH * 0.82;
-      var base = Math.min(demoTop, el * 9);                   // accelerera mot Shinkansen-fart / ~82 % av vald skala
+      if (demoTop < startKmh) demoTop = startKmh;
+      var base = Math.min(demoTop, startKmh + el * accel);    // accelerera mot Shinkansen-fart / ~82 % av vald skala
       var kmh = Math.max(0, base + Math.sin(el / 7) * 8 + Math.sin(el / 2.3) * 2);  // deterministisk, mjuk våg
       ingest(kmh, null, kmh / 3.6 * 0.2, 0.2);
     }, 200);
