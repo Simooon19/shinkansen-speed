@@ -13,7 +13,7 @@ Open the link on your phone, tap **Start**, allow location access, and watch the
 - **Live speed** from your phone's GPS (Doppler speed when available, position-delta fallback)
 - **Max / average speed, distance travelled** and GPS accuracy
 - **Speed history chart** (last 5 minutes)
-- **Adjustable gauge scale** — 350 (Shinkansen), 600 (maglev), 1000 km/h (aircraft)
+- **Auto-scaling gauge** — starts at 150 km/h and grows to 350/600/1000 as you speed up; manual override available
 - **8 languages**, auto-detected from your phone: English, 日本語, Svenska, 中文, 한국어, Deutsch, Français, Español
 - **mph / m/s / Mach** readout
 - **Milestone confetti** at 200, 285, 320 and 500 km/h 🎉

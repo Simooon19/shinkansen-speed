@@ -231,7 +231,8 @@
 <div class="scale-row">
   <span class="scale-label" id="scaleLabel">SKALA</span>
   <div class="scale-btns">
-    <button class="scale-btn active" data-max="350">350</button>
+    <button class="scale-btn active" data-max="auto">AUTO</button>
+    <button class="scale-btn" data-max="350">350</button>
     <button class="scale-btn" data-max="600">600</button>
     <button class="scale-btn" data-max="1000">1000</button>
   </div>
@@ -244,7 +245,6 @@
   <div class="big-emoji">🚄</div>
   <p id="ovText"></p>
   <button class="btn" id="startBtn">Starta</button>
-  <button class="btn-demo" id="demoBtn">Demo</button>
 </div>
 
 <footer>
@@ -414,9 +414,16 @@
   function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || ''; }
 
   // ---------- gauge config ----------
-  var SCALES = { 350: { minor: 25, label: 100 }, 600: { minor: 50, label: 200 }, 1000: { minor: 50, label: 200 } };
-  var MAX_KMH = parseInt(lsGet('scale'), 10);
-  if (!SCALES[MAX_KMH]) MAX_KMH = 350;
+  var SCALES = {
+    150: { minor: 10, label: 50 },
+    350: { minor: 25, label: 100 },
+    600: { minor: 50, label: 200 },
+    1000: { minor: 50, label: 200 }
+  };
+  var AUTO_TIERS = [150, 350, 600, 1000];
+  var savedScale = lsGet('scale');
+  var scaleMode = (savedScale && SCALES[parseInt(savedScale, 10)]) ? parseInt(savedScale, 10) : 'auto';
+  var MAX_KMH = scaleMode === 'auto' ? AUTO_TIERS[0] : scaleMode;
 
   var SWEEP = 240;            // degrees of arc
   var START_DEG = -120;       // 0 km/h position (0° = up)
@@ -439,7 +446,6 @@
     langSel: document.getElementById('langSel'),
     ovText: document.getElementById('ovText'),
     startBtn: document.getElementById('startBtn'),
-    demoBtn: document.getElementById('demoBtn'),
     avgLabel: document.getElementById('avgLabel'),
     distLabel: document.getElementById('distLabel'),
     chartTitle: document.getElementById('chartTitle'),
@@ -526,7 +532,6 @@
     els.langSel.value = lang;
     els.ovText.textContent = t('ovText');
     els.startBtn.textContent = t('start');
-    els.demoBtn.textContent = t('demo');
     els.share.textContent = t('share');
     els.avgLabel.textContent = t('avg');
     els.distLabel.textContent = t('dist');
@@ -612,6 +617,10 @@
     if (kmh > 1300) return;                  // orimligt — släng
     targetKmh = kmh;
     if (kmh > maxKmh) maxKmh = kmh;
+    if (scaleMode === 'auto') {
+      var tier = autoTier();
+      if (tier !== MAX_KMH) applyScale(tier);   // väx skalan när farten kräver det
+    }
     for (var mi = 0; mi < MILESTONES.length; mi++) {
       if (kmh >= MILESTONES[mi] && !msHit[MILESTONES[mi]]) {
         msHit[MILESTONES[mi]] = true;
@@ -686,7 +695,8 @@
     if (demoTimer) clearInterval(demoTimer);
     demoTimer = setInterval(function () {
       var el = (Date.now() - t0) / 1000;
-      var base = Math.min(MAX_KMH * 0.82, el * 9);            // accelerera mot ~82 % av skalan
+      var demoTop = scaleMode === 'auto' ? 285 : MAX_KMH * 0.82;
+      var base = Math.min(demoTop, el * 9);                   // accelerera mot Shinkansen-fart / ~82 % av vald skala
       var kmh = Math.max(0, base + Math.sin(el / 7) * 12 + (Math.random() - 0.5) * 4);
       ingest(kmh, 8, kmh / 3.6, 1);
       setStatus('demoStatus');
@@ -721,22 +731,39 @@
 
   // ---------- scale ----------
   var scaleBtns = document.querySelectorAll('.scale-btn');
-  function setScale(max) {
+  function applyScale(max) {
     MAX_KMH = max;
-    lsSet('scale', String(max));
     rebuildTicks();
-    for (var i = 0; i < scaleBtns.length; i++) {
-      scaleBtns[i].className = 'scale-btn' + (parseInt(scaleBtns[i].getAttribute('data-max'), 10) === max ? ' active' : '');
+  }
+  function autoTier() {
+    var needed = maxKmh * 1.1;
+    for (var ti = 0; ti < AUTO_TIERS.length; ti++) {
+      if (AUTO_TIERS[ti] >= needed) return AUTO_TIERS[ti];
     }
+    return AUTO_TIERS[AUTO_TIERS.length - 1];
+  }
+  function refreshScaleBtns() {
+    for (var i = 0; i < scaleBtns.length; i++) {
+      var v = scaleBtns[i].getAttribute('data-max');
+      var active = scaleMode === 'auto' ? v === 'auto' : parseInt(v, 10) === scaleMode;
+      scaleBtns[i].className = 'scale-btn' + (active ? ' active' : '');
+    }
+  }
+  function setScaleMode(mode) {
+    scaleMode = mode;
+    lsSet('scale', String(mode));
+    applyScale(mode === 'auto' ? autoTier() : mode);
+    refreshScaleBtns();
   }
   for (var i = 0; i < scaleBtns.length; i++) {
     (function (btn) {
       btn.addEventListener('click', function () {
-        setScale(parseInt(btn.getAttribute('data-max'), 10));
+        var v = btn.getAttribute('data-max');
+        setScaleMode(v === 'auto' ? 'auto' : parseInt(v, 10));
       });
     })(scaleBtns[i]);
   }
-  setScale(MAX_KMH);
+  setScaleMode(scaleMode);
 
   // ---------- rendering ----------
   function updateStats() {
@@ -860,13 +887,10 @@
   requestAnimationFrame(frame);
 
   // ---------- start ----------
+  var DEMO = /[?&]demo=1/.test(location.search);   // dolt testläge: ?demo=1
   els.startBtn.addEventListener('click', function () {
     els.overlay.classList.add('hidden');
-    startGPS();
-  });
-  els.demoBtn.addEventListener('click', function () {
-    els.overlay.classList.add('hidden');
-    startDemo();
+    if (DEMO) startDemo(); else startGPS();
   });
 })();
 </script>
