@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>App icon template — render square</title>
+<style>
+  * { margin: 0; padding: 0; }
+  body {
+    width: 100vw; height: 100vh; overflow: hidden;
+    background: radial-gradient(120vw 120vh at 50% -20%, #14213d 0%, #0b1220 60%, #070b14 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ring {
+    width: 74vw; height: 74vw;
+    border-radius: 50%;
+    border: 4.5vw solid rgba(127, 209, 192, 0.85);
+    border-bottom-color: rgba(255, 143, 177, 0.9);
+    display: flex; align-items: center; justify-content: center;
+    transform: rotate(45deg);
+  }
+  .train { font-size: 38vw; transform: rotate(-45deg); }
+</style>
+</head>
+<body>
+  <div class="ring"><div class="train">🚄</div></div>
+</body>
+</html>

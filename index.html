@@ -2,21 +2,24 @@
 <html lang="sv">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; manifest-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b1220">
 <title>新幹線 Shinkansen Speed — Live GPS Speedometer</title>
-<meta name="description" content="See how fast your Shinkansen is going — live GPS speedometer in your browser. No app needed. 8 languages.">
+<meta name="description" content="See how fast your Shinkansen is going — live GPS speedometer in your browser. No app needed. 9 languages.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://simooon19.github.io/shinkansen-speed/">
 <meta property="og:title" content="How fast is your Shinkansen going right now? 🚄">
-<meta property="og:description" content="Open on your phone, tap Start, and watch it hit 300 km/h. Free web app — no install, works in 8 languages.">
+<meta property="og:description" content="Open on your phone, tap Start, and watch it hit 300 km/h. Free web app — no install, works in 9 languages.">
 <meta property="og:image" content="https://simooon19.github.io/shinkansen-speed/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚄</text></svg>">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; }
@@ -28,7 +31,10 @@
     flex-direction: column;
     align-items: center;
     min-height: 100%;
-    padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+    padding: calc(env(safe-area-inset-top, 0px) + 14px)
+             max(16px, env(safe-area-inset-right, 0px))
+             calc(env(safe-area-inset-bottom, 0px) + 18px)
+             max(16px, env(safe-area-inset-left, 0px));
     overflow-x: hidden;
   }
   header { text-align: center; margin-bottom: 4px; }
@@ -183,7 +189,8 @@
   <option value="en">English</option>
   <option value="ja">日本語</option>
   <option value="sv">Svenska</option>
-  <option value="zh">中文</option>
+  <option value="zh">简体中文</option>
+  <option value="zht">繁體中文</option>
   <option value="ko">한국어</option>
   <option value="de">Deutsch</option>
   <option value="fr">Français</option>
@@ -238,7 +245,7 @@
   </div>
 </div>
 
-<div id="status"></div>
+<div id="status" aria-live="polite"></div>
 <button class="share-btn" id="shareBtn">Dela</button>
 
 <div class="overlay" id="overlay">
@@ -256,6 +263,21 @@
 (function () {
   'use strict';
 
+  // ---------- skydd: inramning + kloner ----------
+  if (window.top !== window.self) {
+    // inramad på annan sajt: kan användas för att lura fram platsbehörighet — vägra
+    try { window.top.location.href = 'https://simooon19.github.io/shinkansen-speed/'; } catch (e) {}
+    document.documentElement.innerHTML = '';
+    throw new Error('framed');
+  }
+  if (location.hostname && location.hostname !== 'simooon19.github.io' &&
+      !/^(localhost|127\.)/.test(location.hostname) && location.protocol !== 'file:') {
+    var cloneWarn = document.createElement('div');
+    cloneWarn.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:50;background:#7a2030;color:#fff;font-size:12px;text-align:center;padding:6px 10px;';
+    cloneWarn.textContent = 'Unofficial copy — original: https://simooon19.github.io/shinkansen-speed/';
+    document.body.appendChild(cloneWarn);
+  }
+
   // ---------- i18n ----------
   var I18N = {
     en: {
@@ -266,12 +288,14 @@
       fixOkMove: 'GPS fix OK — waiting for movement…',
       live: 'Measuring live via GPS.',
       fixOkSpeed: 'GPS fix OK — waiting for speed data…',
-      denied: 'Location access denied. Enable it: Settings → Privacy → Location Services → Safari Websites → “While Using”. Then reload the page.',
+      denied: 'Location access denied. Allow location for this site in your browser settings, then reload the page.',
+      deniedIos: 'Location denied. In Safari, tap “ᴀA” in the address bar → Website Settings → Location → Allow (or enable Location Services under Settings → Privacy & Security). Then reload the page.',
       unavailable: 'No GPS signal right now — try moving closer to a window. Retrying…',
       timeout: 'GPS timeout — retrying…',
       demoStatus: 'Demo mode — simulated speed.',
       noGeo: "Your browser doesn't support geolocation.",
       tunnel: 'Tunnel? GPS signal lost — common on the Shinkansen. Waiting… 🕳️',
+      coarse: 'Only a rough position so far (no satellite lock) — hold the phone near the window and make sure Precise Location is ON for your browser.',
       share: 'Share', copied: 'Link copied!',
       shareText: "We're doing {v} km/h on the Shinkansen right now! 🚄",
       avg: 'AVG', dist: 'DISTANCE', chart: 'LAST 5 MIN', scale: 'SCALE'
@@ -284,12 +308,14 @@
       fixOkMove: 'GPS-fix OK — väntar på rörelse …',
       live: 'Mäter live via GPS.',
       fixOkSpeed: 'GPS-fix OK — väntar på hastighetsdata …',
-      denied: 'Platsåtkomst nekad. Aktivera: Inställningar → Integritet → Platstjänster → Safari-webbplatser → ”Vid användning”. Ladda sedan om sidan.',
+      denied: 'Platsåtkomst nekad. Tillåt plats för webbplatsen i webbläsarens inställningar och ladda om sidan.',
+      deniedIos: 'Plats nekad. Tryck på ”ᴀA” i Safaris adressfält → Webbplatsinställningar → Plats → Tillåt (eller slå på Platstjänster under Inställningar → Integritet & säkerhet). Ladda sedan om sidan.',
       unavailable: 'Ingen GPS-signal just nu — testa närmare fönstret. Försöker igen …',
       timeout: 'GPS-timeout — försöker igen …',
       demoStatus: 'Demo-läge — simulerad hastighet.',
       noGeo: 'Din webbläsare saknar stöd för platstjänster.',
       tunnel: 'Tunnel? GPS-signalen borta — vanligt på Shinkansen. Väntar … 🕳️',
+      coarse: 'Bara en grov position än så länge (ingen satellitkontakt) — håll telefonen vid fönstret och kolla att Exakt plats är på för webbläsaren.',
       share: 'Dela', copied: 'Länk kopierad!',
       shareText: 'Vi kör {v} km/h på Shinkansen just nu! 🚄',
       avg: 'MEDEL', dist: 'DISTANS', chart: 'SENASTE 5 MIN', scale: 'SKALA'
@@ -299,15 +325,17 @@
       start: 'スタート', demo: 'デモモード（GPSなし）',
       idle: 'スタートを押すと計測を開始します。',
       fixWait: 'GPS取得中…',
-      fixOkMove: 'GPS取得OK — 動き出すのを待っています…',
+      fixOkMove: 'GPS取得OK。動き出すのを待っています…',
       live: 'GPSでライブ計測中。',
-      fixOkSpeed: 'GPS取得OK — 速度データを待っています…',
-      denied: '位置情報が拒否されました。設定 → プライバシー → 位置情報サービス → Safariのウェブサイト →「使用中のみ」を有効にして、ページを再読み込みしてください。',
-      unavailable: 'GPS信号がありません — 窓際でお試しください。再試行中…',
-      timeout: 'GPSタイムアウト — 再試行中…',
-      demoStatus: 'デモモード — シミュレーション速度です。',
+      fixOkSpeed: 'GPS取得OK。速度データを待っています…',
+      denied: '位置情報が拒否されました。ブラウザの設定でこのサイトの位置情報を許可して、ページを再読み込みしてください。',
+      deniedIos: '位置情報が拒否されました。Safariのアドレスバーの「ぁあ」→「Webサイトの設定」→「位置情報」で許可してください（または設定 → プライバシーとセキュリティ → 位置情報サービスを有効に）。その後、ページを再読み込みしてください。',
+      unavailable: 'GPS信号がありません。窓際でお試しください。再試行中…',
+      timeout: 'GPSタイムアウト。再試行中…',
+      demoStatus: 'デモモード（シミュレーション速度）です。',
       noGeo: 'お使いのブラウザは位置情報に対応していません。',
-      tunnel: 'トンネル？GPS信号が途切れました — 新幹線ではよくあります。待機中… 🕳️',
+      tunnel: 'トンネル？GPS信号が途切れました。新幹線ではよくあります。待機中… 🕳️',
+      coarse: 'まだ大まかな位置しか取得できていません。スマホを窓際に近づけ、ブラウザの「正確な位置情報」がオンになっているか確認してください。',
       share: '共有', copied: 'リンクをコピーしました！',
       shareText: 'いま新幹線で時速{v}kmで走行中！🚄',
       avg: '平均', dist: '距離', chart: '直近5分', scale: 'スケール'
@@ -317,15 +345,17 @@
       start: '开始', demo: '演示模式（无GPS）',
       idle: '点击开始进行测速。',
       fixWait: '正在获取GPS信号…',
-      fixOkMove: 'GPS已就绪 — 等待移动…',
+      fixOkMove: 'GPS已就绪，等待移动…',
       live: '正在通过GPS实时测速。',
-      fixOkSpeed: 'GPS已就绪 — 等待速度数据…',
-      denied: '位置权限被拒绝。请开启：设置 → 隐私 → 定位服务 → Safari网站 → “使用App期间”，然后刷新页面。',
-      unavailable: '当前无GPS信号 — 请靠近窗户。正在重试…',
-      timeout: 'GPS超时 — 正在重试…',
-      demoStatus: '演示模式 — 模拟速度。',
+      fixOkSpeed: 'GPS已就绪，等待速度数据…',
+      denied: '位置权限被拒绝。请在浏览器设置中允许本网站使用位置信息，然后刷新页面。',
+      deniedIos: '位置权限被拒绝。请点按Safari地址栏中的“ᴀA”→“网站设置”→“位置”→ 允许（或在“设置 → 隐私与安全性 → 定位服务”中开启），然后刷新页面。',
+      unavailable: '当前无GPS信号，请靠近窗户。正在重试…',
+      timeout: 'GPS超时，正在重试…',
+      demoStatus: '演示模式：模拟速度。',
       noGeo: '您的浏览器不支持定位。',
-      tunnel: '隧道？GPS信号丢失 — 新干线上很常见。等待中… 🕳️',
+      tunnel: '隧道？GPS信号丢失，新干线上很常见。等待中… 🕳️',
+      coarse: '目前只能获取粗略位置（尚未连接卫星）。请将手机靠近车窗，并确认浏览器已开启“精确位置”。',
       share: '分享', copied: '链接已复制！',
       shareText: '我们乘坐的新干线现在时速{v}公里！🚄',
       avg: '平均', dist: '距离', chart: '最近5分钟', scale: '量程'
@@ -335,15 +365,17 @@
       start: '시작', demo: '데모 모드 (GPS 없음)',
       idle: '시작을 눌러 측정을 시작하세요.',
       fixWait: 'GPS 신호 수신 중…',
-      fixOkMove: 'GPS 준비 완료 — 움직임을 기다리는 중…',
+      fixOkMove: 'GPS 준비 완료. 움직임을 기다리는 중…',
       live: 'GPS로 실시간 측정 중.',
-      fixOkSpeed: 'GPS 준비 완료 — 속도 데이터 대기 중…',
-      denied: "위치 권한이 거부되었습니다. 설정 → 개인정보 보호 → 위치 서비스 → Safari 웹사이트 → '앱을 사용하는 동안'을 활성화한 후 페이지를 새로고침하세요.",
-      unavailable: 'GPS 신호가 없습니다 — 창가로 이동해 보세요. 재시도 중…',
-      timeout: 'GPS 시간 초과 — 재시도 중…',
-      demoStatus: '데모 모드 — 시뮬레이션 속도입니다.',
+      fixOkSpeed: 'GPS 준비 완료. 속도 데이터 대기 중…',
+      denied: '위치 권한이 거부되었습니다. 브라우저 설정에서 이 사이트의 위치 권한을 허용한 후 페이지를 새로고침하세요.',
+      deniedIos: 'Safari 주소창의 “ᴀA” → 웹사이트 설정 → 위치 → 허용을 선택하세요(또는 설정 → 개인정보 보호 및 보안 → 위치 서비스 활성화). 그런 다음 페이지를 새로고침하세요.',
+      unavailable: 'GPS 신호가 없습니다. 창가로 이동해 보세요. 재시도 중…',
+      timeout: 'GPS 시간 초과. 재시도 중…',
+      demoStatus: '데모 모드: 시뮬레이션 속도입니다.',
       noGeo: '브라우저가 위치 정보를 지원하지 않습니다.',
-      tunnel: '터널? GPS 신호가 끊겼습니다 — 신칸센에서는 흔한 일입니다. 대기 중… 🕳️',
+      tunnel: '터널? GPS 신호가 끊겼습니다. 신칸센에서는 흔한 일입니다. 대기 중… 🕳️',
+      coarse: '아직 대략적인 위치만 잡혔습니다(위성 미연결). 휴대폰을 창가에 가까이 대고 브라우저의 '정확한 위치'가 켜져 있는지 확인하세요.',
       share: '공유', copied: '링크가 복사되었습니다!',
       shareText: '지금 신칸센으로 시속 {v}km로 달리는 중! 🚄',
       avg: '평균', dist: '거리', chart: '최근 5분', scale: '범위'
@@ -356,12 +388,14 @@
       fixOkMove: 'GPS OK — warte auf Bewegung…',
       live: 'Live-Messung per GPS.',
       fixOkSpeed: 'GPS OK — warte auf Geschwindigkeitsdaten…',
-      denied: 'Standortzugriff verweigert. Aktiviere: Einstellungen → Datenschutz → Ortungsdienste → Safari-Websites → „Beim Verwenden“. Danach Seite neu laden.',
+      denied: 'Standortzugriff verweigert. Erlaube den Standort für diese Seite in den Browser-Einstellungen und lade die Seite neu.',
+      deniedIos: 'Standort verweigert. Tippe in Safari auf „ᴀA“ in der Adressleiste → Website-Einstellungen → Standort → Erlauben (oder aktiviere Ortungsdienste unter Einstellungen → Datenschutz & Sicherheit). Danach Seite neu laden.',
       unavailable: 'Kein GPS-Signal — versuche es näher am Fenster. Neuer Versuch…',
       timeout: 'GPS-Timeout — neuer Versuch…',
       demoStatus: 'Demo-Modus — simulierte Geschwindigkeit.',
       noGeo: 'Dein Browser unterstützt keine Ortung.',
       tunnel: 'Tunnel? GPS-Signal weg — im Shinkansen ganz normal. Warte… 🕳️',
+      coarse: 'Bisher nur eine grobe Position (kein Satellitenempfang) — halte das Handy ans Fenster und prüfe, ob „Genauer Standort“ für den Browser aktiviert ist.',
       share: 'Teilen', copied: 'Link kopiert!',
       shareText: 'Wir fahren gerade {v} km/h im Shinkansen! 🚄',
       avg: 'SCHNITT', dist: 'DISTANZ', chart: 'LETZTE 5 MIN', scale: 'SKALA'
@@ -374,15 +408,17 @@
       fixOkMove: 'GPS OK — en attente de mouvement…',
       live: 'Mesure en direct par GPS.',
       fixOkSpeed: 'GPS OK — en attente des données de vitesse…',
-      denied: "Localisation refusée. Active : Réglages → Confidentialité → Service de localisation → Sites web Safari → « Lorsque l'app est active », puis recharge la page.",
+      denied: 'Localisation refusée. Autorise la localisation pour ce site dans les réglages du navigateur, puis recharge la page.',
+      deniedIos: "Localisation refusée. Dans Safari, touche « ᴀA » dans la barre d'adresse → Réglages du site web → Position → Autoriser (ou active le Service de localisation dans Réglages → Confidentialité et sécurité). Puis recharge la page.",
       unavailable: "Pas de signal GPS — rapproche-toi d'une fenêtre. Nouvel essai…",
       timeout: 'Délai GPS dépassé — nouvel essai…',
       demoStatus: 'Mode démo — vitesse simulée.',
       noGeo: 'Ton navigateur ne prend pas en charge la géolocalisation.',
       tunnel: 'Tunnel ? Signal GPS perdu — fréquent en Shinkansen. En attente… 🕳️',
+      coarse: 'Position encore approximative (pas de signal satellite) — tiens le téléphone près de la fenêtre et vérifie que la position exacte est activée pour le navigateur.',
       share: 'Partager', copied: 'Lien copié !',
       shareText: 'On roule à {v} km/h en Shinkansen ! 🚄',
-      avg: 'MOYENNE', dist: 'DISTANCE', chart: '5 DERN. MIN', scale: 'ÉCHELLE'
+      avg: 'MOYENNE', dist: 'DISTANCE', chart: 'DERNIÈRES 5 MIN', scale: 'ÉCHELLE'
     },
     es: {
       ovText: 'Mide tu velocidad con el GPS del móvil. Permite el acceso a la ubicación cuando el navegador lo pida — funciona mejor junto a la ventana.',
@@ -392,24 +428,50 @@
       fixOkMove: 'GPS OK — esperando movimiento…',
       live: 'Midiendo en vivo por GPS.',
       fixOkSpeed: 'GPS OK — esperando datos de velocidad…',
-      denied: 'Ubicación denegada. Actívala: Ajustes → Privacidad → Localización → Sitios web de Safari → «Al usarla», y recarga la página.',
+      denied: 'Ubicación denegada. Permite la ubicación para este sitio en los ajustes del navegador y recarga la página.',
+      deniedIos: 'Ubicación denegada. En Safari, toca “ᴀA” en la barra de direcciones → Ajustes del sitio web → Ubicación → Permitir (o activa Localización en Ajustes → Privacidad y seguridad). Luego recarga la página.',
       unavailable: 'Sin señal GPS — acércate a una ventana. Reintentando…',
       timeout: 'Tiempo de espera GPS agotado — reintentando…',
       demoStatus: 'Modo demo — velocidad simulada.',
       noGeo: 'Tu navegador no admite geolocalización.',
       tunnel: '¿Túnel? Señal GPS perdida — habitual en el Shinkansen. Esperando… 🕳️',
+      coarse: 'Por ahora solo hay una posición aproximada (sin señal de satélite) — acerca el móvil a la ventana y comprueba que la ubicación precisa esté activada para el navegador.',
       share: 'Compartir', copied: '¡Enlace copiado!',
       shareText: '¡Vamos a {v} km/h en el Shinkansen ahora mismo! 🚄',
-      avg: 'MEDIA', dist: 'DISTANCIA', chart: 'ÚLT. 5 MIN', scale: 'ESCALA'
+      avg: 'MEDIA', dist: 'DISTANCIA', chart: 'ÚLTIMOS 5 MIN', scale: 'ESCALA'
+    },
+    zht: {
+      ovText: '使用手機GPS測量速度。瀏覽器詢問時請允許位置權限。靠窗效果最佳。',
+      start: '開始', demo: '示範模式（無GPS）',
+      idle: '點按開始進行測速。',
+      fixWait: '正在取得GPS訊號…',
+      fixOkMove: 'GPS已就緒，等待移動…',
+      live: '正在透過GPS即時測速。',
+      fixOkSpeed: 'GPS已就緒，等待速度資料…',
+      denied: '位置權限被拒絕。請在瀏覽器設定中允許本網站使用位置資訊，然後重新整理頁面。',
+      deniedIos: '位置權限被拒絕。請點按Safari網址列中的「ᴀA」→「網站設定」→「位置」→ 允許（或在「設定 → 隱私權與安全性 → 定位服務」中開啟），然後重新整理頁面。',
+      unavailable: '目前沒有GPS訊號，請靠近車窗。重試中…',
+      timeout: 'GPS逾時，重試中…',
+      demoStatus: '示範模式：模擬速度。',
+      noGeo: '您的瀏覽器不支援定位。',
+      tunnel: '隧道？GPS訊號中斷，新幹線上很常見。等待中… 🕳️',
+      coarse: '目前只能取得粗略位置（尚未連接衛星）。請將手機靠近車窗，並確認瀏覽器已開啟「精確位置」。',
+      share: '分享', copied: '連結已複製！',
+      shareText: '我們搭乘的新幹線現在時速{v}公里！🚄',
+      avg: '平均', dist: '距離', chart: '最近5分鐘', scale: '量程'
     }
   };
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
-  var nav2 = (navigator.language || 'en').toLowerCase().slice(0, 2);
-  var lang = lsGet('lang') || (I18N[nav2] ? nav2 : 'en');
+  var navlow = (navigator.language || 'en').toLowerCase();
+  var nav2 = navlow.slice(0, 2);
+  var autoLang = (nav2 === 'zh' && /(tw|hk|mo|hant)/.test(navlow)) ? 'zht' : nav2;
+  var lang = lsGet('shinkansen.lang') || (I18N[autoLang] ? autoLang : 'en');
   if (!I18N[lang]) lang = 'en';
+  var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || ''; }
 
@@ -421,7 +483,7 @@
     1000: { minor: 50, label: 200 }
   };
   var AUTO_TIERS = [150, 350, 600, 1000];
-  var savedScale = lsGet('scale');
+  var savedScale = lsGet('shinkansen.scale');
   var scaleMode = (savedScale && SCALES[parseInt(savedScale, 10)]) ? parseInt(savedScale, 10) : 'auto';
   var MAX_KMH = scaleMode === 'auto' ? AUTO_TIERS[0] : scaleMode;
 
@@ -512,7 +574,7 @@
   var maxKmh = 0;
   var totalDistM = 0;      // meters
   var movingTimeS = 0;     // seconds with speed > 2 km/h
-  var lastFix = null;      // {lat, lon, t, acc}
+  var measuring = false;   // true efter Start
   var history = [];        // [{t, kmh}] for the chart
   var HISTORY_MS = 5 * 60 * 1000;
   var wakeLock = null;
@@ -542,7 +604,7 @@
   }
   els.langSel.addEventListener('change', function () {
     lang = els.langSel.value;
-    lsSet('lang', lang);
+    lsSet('shinkansen.lang', lang);
     applyLang();
   });
   applyLang();
@@ -628,8 +690,8 @@
         confetti();
       }
     }
-    if (distM != null && distM >= 0) totalDistM += distM;
-    if (dtS != null && kmh > 2) movingTimeS += dtS;
+    if (distM != null && distM > 0) totalDistM += distM;
+    if (dtS != null && dtS > 0 && dtS < 60 && kmh > 2) movingTimeS += dtS;
     history.push({ t: Date.now(), kmh: kmh });
     var cutoff = Date.now() - HISTORY_MS;
     while (history.length && history[0].t < cutoff) history.shift();
@@ -639,37 +701,42 @@
     updateStats();
   }
 
+  var speedAnchor = null;   // referensfix för distans + fallback-fart
+
   function onPosition(pos) {
     var c = pos.coords;
     var ts = pos.timestamp;
     var kmh = null, distM = null, dtS = null;
+    var dopplerOk = typeof c.speed === 'number' && !isNaN(c.speed) && c.speed >= 0;
+    if (dopplerOk) kmh = c.speed * 3.6;      // Doppler-hastighet: bäst
 
-    if (lastFix) {
-      dtS = (ts - lastFix.t) / 1000;
-      if (dtS > 0 && c.accuracy < 150 && lastFix.acc < 150) {
-        distM = haversine(lastFix.lat, lastFix.lon, c.latitude, c.longitude);
+    if (c.accuracy <= 100) {
+      var gap = speedAnchor ? (ts - speedAnchor.t) / 1000 : null;
+      if (!speedAnchor || gap <= 0 || gap >= 60) {
+        // nytt segment: första fixen, klockhopp eller långt glapp (tunnel)
+        speedAnchor = { lat: c.latitude, lon: c.longitude, t: ts, acc: c.accuracy };
+      } else if (gap >= 1) {
+        var d = haversine(speedAnchor.lat, speedAnchor.lon, c.latitude, c.longitude);
+        var noise = c.accuracy + speedAnchor.acc;   // brusgolv: kombinerad osäkerhet
+        if (d > noise) { distM = d; dtS = gap; }
+        if (!dopplerOk) kmh = d > noise ? (d / gap) * 3.6 : 0;
+        speedAnchor = { lat: c.latitude, lon: c.longitude, t: ts, acc: c.accuracy };
       }
+      // gap < 1 s: behåll ankaret, vänta in nästa fix
     }
-
-    if (typeof c.speed === 'number' && !isNaN(c.speed) && c.speed >= 0) {
-      kmh = c.speed * 3.6;                   // Doppler-hastighet: bäst
-    } else if (distM != null && dtS != null && dtS >= 0.8 && dtS < 30) {
-      kmh = (distM / dtS) * 3.6;             // fallback: beräknad ur positioner
-    }
-
-    lastFix = { lat: c.latitude, lon: c.longitude, t: ts, acc: c.accuracy };
 
     if (kmh != null) {
       ingest(kmh, c.accuracy, distM, dtS);
       setStatus(kmh < 1 ? 'fixOkMove' : 'live');
     } else {
       els.acc.innerHTML = '±' + Math.round(c.accuracy) + '<small>m</small>';
-      setStatus('fixOkSpeed');
+      // > 500 m = mobilmast/Wi-Fi-position, ingen satellitkontakt än — ge en hjälpande hint
+      setStatus(c.accuracy > 500 ? 'coarse' : 'fixOkSpeed');
     }
   }
 
   function onGeoError(err) {
-    if (err.code === 1) setStatus('denied', true);
+    if (err.code === 1) setStatus(IS_IOS ? 'deniedIos' : 'denied', true);
     else if (maxKmh > 50) setStatus('tunnel', false);   // signal borta i farten = troligen tunnel
     else if (err.code === 2) setStatus('unavailable', true);
     else setStatus('timeout', true);
@@ -680,6 +747,7 @@
       setStatus('noGeo', true);
       return;
     }
+    measuring = true;
     setStatus('fixWait');
     navigator.geolocation.watchPosition(onPosition, onGeoError, {
       enableHighAccuracy: true,
@@ -692,6 +760,7 @@
   // ---------- demo mode ----------
   function startDemo() {
     var t0 = Date.now();
+    measuring = true;
     if (demoTimer) clearInterval(demoTimer);
     demoTimer = setInterval(function () {
       var el = (Date.now() - t0) / 1000;
@@ -709,11 +778,15 @@
     if (!('wakeLock' in navigator)) return;
     navigator.wakeLock.request('screen').then(function (wl) {
       wakeLock = wl;
-    }).catch(function () { /* ignoreras — ej kritiskt */ });
+      wl.addEventListener('release', function () { wakeLock = null; });
+    }).catch(function () { wakeLock = null; /* t.ex. strömsparläge — vi försöker igen nedan */ });
   }
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible' && wakeLock !== null) requestWakeLock();
+    if (document.visibilityState === 'visible' && measuring) requestWakeLock();
   });
+  setInterval(function () {
+    if (measuring && !wakeLock && document.visibilityState === 'visible') requestWakeLock();
+  }, 15000);
 
   // ---------- share ----------
   els.share.addEventListener('click', function () {
@@ -751,7 +824,7 @@
   }
   function setScaleMode(mode) {
     scaleMode = mode;
-    lsSet('scale', String(mode));
+    lsSet('shinkansen.scale', String(mode));
     applyScale(mode === 'auto' ? autoTier() : mode);
     refreshScaleBtns();
   }
@@ -766,14 +839,18 @@
   setScaleMode(scaleMode);
 
   // ---------- rendering ----------
+  var DECIMAL_COMMA = { sv: 1, de: 1, fr: 1, es: 1 };
   function updateStats() {
     els.max.textContent = Math.round(maxKmh);
     var avg = movingTimeS > 5 ? (totalDistM / movingTimeS) * 3.6 : 0;
     els.avg.textContent = Math.round(avg);
     var km = totalDistM / 1000;
-    els.dist.innerHTML = (km < 100 ? km.toFixed(1) : Math.round(km)) + '<small>km</small>';
+    var kmStr = km < 100 ? km.toFixed(1) : String(Math.round(km));
+    if (DECIMAL_COMMA[lang]) kmStr = kmStr.replace('.', ',');
+    els.dist.innerHTML = kmStr + '<small>km</small>';
   }
 
+  var chartDrawn = false;
   function drawChart() {
     var canvas = els.chart;
     var dpr = window.devicePixelRatio || 1;
@@ -781,8 +858,12 @@
     if (canvas.width !== w * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
     var ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (history.length < 2) {
+      if (chartDrawn) { ctx.clearRect(0, 0, w, h); chartDrawn = false; }
+      return;
+    }
     ctx.clearRect(0, 0, w, h);
-    if (history.length < 2) return;
+    chartDrawn = true;
 
     var now = Date.now();
     var yMax = Math.max(100, maxKmh * 1.1);
@@ -790,7 +871,9 @@
     for (var i = 0; i < history.length; i++) {
       var x = w - ((now - history[i].t) / HISTORY_MS) * w;
       var y = h - 4 - (history[i].kmh / yMax) * (h - 10);
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      // bryt linjen över GPS-glapp (tunnlar) i stället för att rita en falsk interpolation
+      if (i === 0 || history[i].t - history[i - 1].t > 10000) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
     ctx.strokeStyle = '#7fd1c0';
     ctx.lineWidth = 2;
@@ -808,6 +891,7 @@
   // ---------- speed-reactive visuals ----------
   var slCanvas = document.getElementById('speedlines');
   var slParts = [];
+  var slWasActive = false;
 
   function lerpColor(f) {
     // teal → guld → rosa
@@ -829,9 +913,13 @@
     }
     var ctx = slCanvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
     var intensity = Math.min(1, Math.max(0, (kmh - 30) / 170));  // fadear in 30→200 km/h
-    if (intensity <= 0) return;
+    if (intensity <= 0) {
+      if (slWasActive) { ctx.clearRect(0, 0, w, h); slWasActive = false; }
+      return;
+    }
+    slWasActive = true;
+    ctx.clearRect(0, 0, w, h);
     if (!slParts.length) {
       for (var i = 0; i < 26; i++) {
         slParts.push({ x: Math.random() * w, y: Math.random() * h, d: 0.4 + Math.random() * 0.8 });
@@ -853,9 +941,16 @@
     }
   }
 
-  function frame() {
-    // mjuk animering mot senaste mätvärdet
-    displayKmh += (targetKmh - displayKmh) * 0.12;
+  var lastFrameTs = 0;
+  function frame(ts) {
+    requestAnimationFrame(frame);
+    var dt = lastFrameTs ? Math.min(0.1, (ts - lastFrameTs) / 1000) : 0.016;
+    lastFrameTs = ts;
+    // spara batteri: gör ingenting innan mätningen startat och allt står stilla
+    if (!measuring && targetKmh === 0 && displayKmh === 0) return;
+
+    // mjuk animering mot senaste mätvärdet (framerate-oberoende)
+    displayKmh += (targetKmh - displayKmh) * (1 - Math.exp(-7 * dt));
     if (Math.abs(displayKmh - targetKmh) < 0.05) displayKmh = targetKmh;
 
     els.speed.textContent = Math.round(displayKmh);
@@ -882,7 +977,6 @@
     }
 
     drawChart();
-    requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 

@@ -14,13 +14,15 @@ Open the link on your phone, tap **Start**, allow location access, and watch the
 - **Max / average speed, distance travelled** and GPS accuracy
 - **Speed history chart** (last 5 minutes)
 - **Auto-scaling gauge** — starts at 150 km/h and grows to 350/600/1000 as you speed up; manual override available
-- **8 languages**, auto-detected from your phone: English, 日本語, Svenska, 中文, 한국어, Deutsch, Français, Español
+- **9 languages**, auto-detected from your phone: English, 日本語, Svenska, 简体中文, 繁體中文, 한국어, Deutsch, Français, Español
 - **mph / m/s / Mach** readout
 - **Milestone confetti** at 200, 285, 320 and 500 km/h 🎉
 - **Tunnel detection** — GPS dropouts at speed are flagged as tunnels (you'll see plenty on the Tōkaidō line)
 - **Screen wake lock** so the display stays on
 - **Share button** that includes your current speed
-- Works for any train, car, plane or ferry — not just the Shinkansen
+- Works for any train, plane or ferry — not just the Shinkansen (passengers only — never use while driving)
+
+*Unofficial fan-made project — not affiliated with JR or any railway company.*
 
 ## Tips
 
