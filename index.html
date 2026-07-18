@@ -1590,6 +1590,23 @@
     return sessionSamples.slice(lo, hi + 1);
   }
 
+  // Högsta fart som hållits inom ±2 km/h i minst 5 sekunder i sträck (glapp ≤ 10 s).
+  // Spikar och korta utelägg kan aldrig bilda ett 5-sekundersgolv — samma funktion
+  // körs på servern, så klientens påstående alltid stämmer med valideringen.
+  function sustainedTop(win) {
+    var best = 0;
+    for (var i = 0; i < win.length; i++) {
+      var min = win[i].kmh, j = i;
+      while (j + 1 < win.length && win[j + 1].t - win[j].t <= 10000) {
+        j++;
+        if (win[j].kmh < min) min = win[j].kmh;
+        if (win[j].t - win[i].t >= 5000) break;
+      }
+      if (win[j].t - win[i].t >= 5000 && min > best) best = min;
+    }
+    return best;
+  }
+
   function lbSubmit() {
     var name = els.lbName.value.trim();
     if (!name) { els.lbName.focus(); return; }
@@ -1599,8 +1616,7 @@
       els.lbNote.textContent = t('lbNeed');
       return;
     }
-    var maxK = 0;
-    for (var i = 0; i < win.length; i++) if (win[i].kmh > maxK) maxK = win[i].kmh;
+    var maxK = sustainedTop(win);
     // koordinater skickas ALDRIG — bara {t, kmh, acc} + ev. grov linjeetikett
     var cleanWin = [];
     for (var ci = 0; ci < win.length; ci++) {
