@@ -217,6 +217,12 @@
     cursor: pointer;
   }
   .btn:active { transform: scale(0.97); }
+  .btn-install {
+    margin-top: 14px; background: none; border: 1px solid rgba(142,232,210,0.5);
+    color: #8ee8d2; font-size: 13.5px; font-weight: 600;
+    border-radius: 999px; padding: 9px 22px; cursor: pointer;
+  }
+  .install-hint { margin-top: 14px; font-size: 12px; color: #8fa0ba; max-width: 300px; line-height: 1.5; }
   .hidden { display: none !important; }
 
   footer { margin-top: auto; padding-top: 14px; font-size: 11.5px; color: #5c6b85; letter-spacing: 0.04em; }
@@ -320,6 +326,8 @@
   <div class="big-emoji">🚄</div>
   <p id="ovText"></p>
   <button class="btn" id="startBtn">Starta</button>
+  <button class="btn-install hidden" id="installBtn"></button>
+  <div class="install-hint hidden" id="installHint"></div>
 </div>
 
 <footer>
@@ -380,7 +388,9 @@
       lbDaily: "DAILY TOP — LAST 30 DAYS",
       share: 'Share', copied: 'Link copied!',
       shareText: "We're doing {v} km/h on the Shinkansen right now! 🚄",
-      avg: 'AVG', dist: 'DISTANCE', chart: 'LAST 5 MIN', scale: 'SCALE'
+      avg: 'AVG', dist: 'DISTANCE', chart: 'LAST 5 MIN', scale: 'SCALE',
+      install: 'Install app',
+      installHint: 'Tip: tap Share and choose "Add to Home Screen" to keep it one tap away.'
     },
     sv: {
       ovText: 'Mäter din hastighet med telefonens GPS. Godkänn platsåtkomst när webbläsaren frågar — funkar bäst vid fönstret.',
@@ -413,7 +423,9 @@
       lbDaily: "DAGSTOPP — SENASTE 30 DAGARNA",
       share: 'Dela', copied: 'Länk kopierad!',
       shareText: 'Vi kör {v} km/h på Shinkansen just nu! 🚄',
-      avg: 'MEDEL', dist: 'DISTANS', chart: 'SENASTE 5 MIN', scale: 'SKALA'
+      avg: 'MEDEL', dist: 'DISTANS', chart: 'SENASTE 5 MIN', scale: 'SKALA',
+      install: 'Installera appen',
+      installHint: 'Tips: tryck på Dela och välj ”Lägg till på hemskärmen” så hittar du den med ett tryck.'
     },
     ja: {
       ovText: 'スマホのGPSで速度を測定します。位置情報の許可を求められたら許可してください。窓際が最適です。',
@@ -446,7 +458,9 @@
       lbDaily: "日別トップ・過去30日",
       share: '共有', copied: 'リンクをコピーしました！',
       shareText: 'いま新幹線で時速{v}kmで走行中！🚄',
-      avg: '平均', dist: '距離', chart: '直近5分', scale: 'スケール'
+      avg: '平均', dist: '距離', chart: '直近5分', scale: 'スケール',
+      install: 'アプリをインストール',
+      installHint: 'ヒント：共有ボタンから「ホーム画面に追加」を選ぶと、ワンタップで開けます。'
     },
     zh: {
       ovText: '使用手机GPS测量速度。浏览器询问时请允许位置权限。靠窗效果最佳。',
@@ -479,7 +493,9 @@
       lbDaily: "每日最高 · 最近30天",
       share: '分享', copied: '链接已复制！',
       shareText: '我们乘坐的新干线现在时速{v}公里！🚄',
-      avg: '平均', dist: '距离', chart: '最近5分钟', scale: '量程'
+      avg: '平均', dist: '距离', chart: '最近5分钟', scale: '量程',
+      install: '安装应用',
+      installHint: '提示：点击“分享”并选择“添加到主屏幕”，以后一键打开。'
     },
     ko: {
       ovText: '휴대폰 GPS로 속도를 측정합니다. 위치 권한을 허용해 주세요. 창가에서 가장 잘 작동합니다.',
@@ -512,7 +528,9 @@
       lbDaily: "일일 최고 · 최근 30일",
       share: '공유', copied: '링크가 복사되었습니다!',
       shareText: '지금 신칸센으로 시속 {v}km로 달리는 중! 🚄',
-      avg: '평균', dist: '거리', chart: '최근 5분', scale: '범위'
+      avg: '평균', dist: '거리', chart: '최근 5분', scale: '범위',
+      install: '앱 설치',
+      installHint: '팁: 공유 버튼을 누르고 “홈 화면에 추가”를 선택하면 바로 실행할 수 있어요.'
     },
     de: {
       ovText: 'Misst deine Geschwindigkeit per GPS. Erlaube den Standortzugriff, wenn der Browser fragt — am Fenster klappt es am besten.',
@@ -545,7 +563,9 @@
       lbDaily: "TAGESTOP — LETZTE 30 TAGE",
       share: 'Teilen', copied: 'Link kopiert!',
       shareText: 'Wir fahren gerade {v} km/h im Shinkansen! 🚄',
-      avg: 'SCHNITT', dist: 'DISTANZ', chart: 'LETZTE 5 MIN', scale: 'SKALA'
+      avg: 'SCHNITT', dist: 'DISTANZ', chart: 'LETZTE 5 MIN', scale: 'SKALA',
+      install: 'App installieren',
+      installHint: 'Tipp: Tippe auf „Teilen“ und dann auf „Zum Home-Bildschirm“, dann hast du sie immer griffbereit.'
     },
     fr: {
       ovText: "Mesure ta vitesse via le GPS du téléphone. Autorise la localisation quand le navigateur le demande — idéalement près de la fenêtre.",
@@ -578,7 +598,9 @@
       lbDaily: "TOP DU JOUR — 30 DERNIERS JOURS",
       share: 'Partager', copied: 'Lien copié !',
       shareText: 'On roule à {v} km/h en Shinkansen ! 🚄',
-      avg: 'MOYENNE', dist: 'DISTANCE', chart: 'DERNIÈRES 5 MIN', scale: 'ÉCHELLE'
+      avg: 'MOYENNE', dist: 'DISTANCE', chart: 'DERNIÈRES 5 MIN', scale: 'ÉCHELLE',
+      install: "Installer l'app",
+      installHint: "Astuce : touche Partager puis « Sur l'écran d'accueil » pour l'avoir à portée de doigt."
     },
     es: {
       ovText: 'Mide tu velocidad con el GPS del móvil. Permite el acceso a la ubicación cuando el navegador lo pida — funciona mejor junto a la ventana.',
@@ -611,7 +633,9 @@
       lbDaily: "TOP DIARIO — ÚLTIMOS 30 DÍAS",
       share: 'Compartir', copied: '¡Enlace copiado!',
       shareText: '¡Vamos a {v} km/h en el Shinkansen ahora mismo! 🚄',
-      avg: 'MEDIA', dist: 'DISTANCIA', chart: 'ÚLTIMOS 5 MIN', scale: 'ESCALA'
+      avg: 'MEDIA', dist: 'DISTANCIA', chart: 'ÚLTIMOS 5 MIN', scale: 'ESCALA',
+      install: 'Instalar app',
+      installHint: 'Consejo: pulsa Compartir y elige «Añadir a pantalla de inicio» para tenerla a un toque.'
     },
     zht: {
       ovText: '使用手機GPS測量速度。瀏覽器詢問時請允許位置權限。靠窗效果最佳。',
@@ -644,7 +668,9 @@
       lbDaily: "每日最高 · 最近30天",
       share: '分享', copied: '連結已複製！',
       shareText: '我們搭乘的新幹線現在時速{v}公里！🚄',
-      avg: '平均', dist: '距離', chart: '最近5分鐘', scale: '量程'
+      avg: '平均', dist: '距離', chart: '最近5分鐘', scale: '量程',
+      install: '安裝應用程式',
+      installHint: '提示：點「分享」並選擇「加入主畫面」，之後一按即可開啟。'
     }
   };
 
@@ -708,7 +734,9 @@
     lbDailyTitle: document.getElementById('lbDailyTitle'),
     lbName: document.getElementById('lbName'),
     lbSend: document.getElementById('lbSend'),
-    lbNote: document.getElementById('lbNote')
+    lbNote: document.getElementById('lbNote'),
+    installBtn: document.getElementById('installBtn'),
+    installHint: document.getElementById('installHint')
   };
 
   // Klistra in din Buy Me a Coffee/Ko-fi-länk här så dyker ☕-knappen upp i sidfoten
@@ -802,6 +830,8 @@
     els.lbName.placeholder = t('lbNamePh');
     els.lbSend.textContent = t('lbSend');
     els.lbDailyTitle.textContent = t('lbDaily');
+    els.installBtn.textContent = t('install');
+    els.installHint.textContent = t('installHint');
     var tabMap = { today: 'lbToday', week: 'lbWeek', month: 'lbMonth', alltime: 'lbAll' };
     var tabs = document.querySelectorAll('.lb-tab');
     for (var ti = 0; ti < tabs.length; ti++) {
@@ -1379,6 +1409,29 @@
     els.overlay.classList.add('hidden');
     if (DEMO) startDemo(); else startGPS();
   });
+
+  // ---------- install (PWA) ----------
+  var installEvt = null;
+  var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+                     window.navigator.standalone === true;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();                 // vi visar vår egen knapp i stället för mini-infobaren
+    installEvt = e;
+    if (!isStandalone) els.installBtn.classList.remove('hidden');
+  });
+  els.installBtn.addEventListener('click', function () {
+    if (!installEvt) return;
+    installEvt.prompt();
+    installEvt.userChoice.then(function () {
+      installEvt = null;
+      els.installBtn.classList.add('hidden');
+    });
+  });
+  window.addEventListener('appinstalled', function () {
+    els.installBtn.classList.add('hidden');
+    els.installHint.classList.add('hidden');
+  });
+  if (IS_IOS && !isStandalone) els.installHint.classList.remove('hidden');   // iOS har ingen prompt — visa tips
 
   // ---------- PWA: installerbar + offline ----------
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
