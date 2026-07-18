@@ -1,7 +1,7 @@
 // Shinkansen Speed — service worker: gör appen installerbar och fungera offline.
 // Stale-while-revalidate: serva cache direkt, uppdatera i bakgrunden.
 // Topplistan (Supabase) och allt utanför egen origin går alltid mot nätet.
-var CACHE = 'shinkansen-v1';
+var CACHE = 'shinkansen-v2';
 var CORE = ['.', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {

@@ -197,6 +197,13 @@
   }
   .lb-send:disabled { opacity: 0.45; }
   .lb-note { font-size: 11.5px; color: #8fa0ba; margin-top: 8px; text-align: center; min-height: 1.2em; }
+  .lb-line { display: flex; align-items: center; gap: 7px; margin-top: 9px; font-size: 12px; color: #8fa0ba; cursor: pointer; }
+  .lb-line input { accent-color: #59c9ad; }
+  .lb-ln {
+    flex: none; font-size: 10px; color: #7fd1c0;
+    border: 1px solid rgba(127,209,192,0.4); border-radius: 999px; padding: 2px 7px;
+    white-space: nowrap;
+  }
 
   .overlay {
     position: fixed; inset: 0; z-index: 10;
@@ -371,6 +378,7 @@
       <input id="lbName" maxlength="20" autocomplete="nickname">
       <button class="lb-send" id="lbSend"></button>
     </div>
+    <label class="lb-line hidden" id="lbLineWrap"><input type="checkbox" id="lbLineInc" checked> <span id="lbLineTxt"></span></label>
     <div class="lb-note" id="lbNote" aria-live="polite"></div>
   </div>
 </div>
@@ -466,6 +474,7 @@
       lbRate: "Too many submissions — try again later.",
       lbError: "Could not reach the leaderboard.",
       lbDaily: "DAILY TOP — LAST 30 DAYS",
+      lbLineInc: "Add line",
       share: 'Share', copied: 'Link copied!',
       shareText: "We're doing {v} km/h on the Shinkansen right now! 🚄",
       avg: 'AVG', dist: 'DISTANCE', chart: 'LAST 5 MIN', scale: 'SCALE',
@@ -509,6 +518,7 @@
       lbRate: "För många inskick — vänta en stund.",
       lbError: "Kunde inte nå topplistan.",
       lbDaily: "DAGSTOPP — SENASTE 30 DAGARNA",
+      lbLineInc: "Lägg till linje",
       share: 'Dela', copied: 'Länk kopierad!',
       shareText: 'Vi kör {v} km/h på Shinkansen just nu! 🚄',
       avg: 'MEDEL', dist: 'DISTANS', chart: 'SENASTE 5 MIN', scale: 'SKALA',
@@ -552,6 +562,7 @@
       lbRate: "投稿が多すぎます。しばらくしてからお試しください。",
       lbError: "ランキングに接続できませんでした。",
       lbDaily: "日別トップ・過去30日",
+      lbLineInc: "路線を追加",
       share: '共有', copied: 'リンクをコピーしました！',
       shareText: 'いま新幹線で時速{v}kmで走行中！🚄',
       avg: '平均', dist: '距離', chart: '直近5分', scale: 'スケール',
@@ -595,6 +606,7 @@
       lbRate: "提交太频繁，请稍后再试。",
       lbError: "无法连接排行榜。",
       lbDaily: "每日最高 · 最近30天",
+      lbLineInc: "添加线路",
       share: '分享', copied: '链接已复制！',
       shareText: '我们乘坐的新干线现在时速{v}公里！🚄',
       avg: '平均', dist: '距离', chart: '最近5分钟', scale: '量程',
@@ -638,6 +650,7 @@
       lbRate: "제출이 너무 많습니다. 잠시 후 다시 시도하세요.",
       lbError: "리더보드에 연결할 수 없습니다.",
       lbDaily: "일일 최고 · 최근 30일",
+      lbLineInc: "노선 추가",
       share: '공유', copied: '링크가 복사되었습니다!',
       shareText: '지금 신칸센으로 시속 {v}km로 달리는 중! 🚄',
       avg: '평균', dist: '거리', chart: '최근 5분', scale: '범위',
@@ -681,6 +694,7 @@
       lbRate: "Zu viele Einsendungen — versuch es später.",
       lbError: "Bestenliste nicht erreichbar.",
       lbDaily: "TAGESTOP — LETZTE 30 TAGE",
+      lbLineInc: "Strecke hinzufügen",
       share: 'Teilen', copied: 'Link kopiert!',
       shareText: 'Wir fahren gerade {v} km/h im Shinkansen! 🚄',
       avg: 'SCHNITT', dist: 'DISTANZ', chart: 'LETZTE 5 MIN', scale: 'SKALA',
@@ -724,6 +738,7 @@
       lbRate: "Trop d'envois — réessaie plus tard.",
       lbError: "Classement inaccessible.",
       lbDaily: "TOP DU JOUR — 30 DERNIERS JOURS",
+      lbLineInc: "Ajouter la ligne",
       share: 'Partager', copied: 'Lien copié !',
       shareText: 'On roule à {v} km/h en Shinkansen ! 🚄',
       avg: 'MOYENNE', dist: 'DISTANCE', chart: 'DERNIÈRES 5 MIN', scale: 'ÉCHELLE',
@@ -767,6 +782,7 @@
       lbRate: "Demasiados envíos — inténtalo más tarde.",
       lbError: "No se pudo conectar con la clasificación.",
       lbDaily: "TOP DIARIO — ÚLTIMOS 30 DÍAS",
+      lbLineInc: "Añadir línea",
       share: 'Compartir', copied: '¡Enlace copiado!',
       shareText: '¡Vamos a {v} km/h en el Shinkansen ahora mismo! 🚄',
       avg: 'MEDIA', dist: 'DISTANCIA', chart: 'ÚLTIMOS 5 MIN', scale: 'ESCALA',
@@ -810,6 +826,7 @@
       lbRate: "提交太頻繁，請稍後再試。",
       lbError: "無法連接排行榜。",
       lbDaily: "每日最高 · 最近30天",
+      lbLineInc: "加入路線",
       share: '分享', copied: '連結已複製！',
       shareText: '我們搭乘的新幹線現在時速{v}公里！🚄',
       avg: '平均', dist: '距離', chart: '最近5分鐘', scale: '量程',
@@ -887,6 +904,9 @@
     lbName: document.getElementById('lbName'),
     lbSend: document.getElementById('lbSend'),
     lbNote: document.getElementById('lbNote'),
+    lbLineWrap: document.getElementById('lbLineWrap'),
+    lbLineInc: document.getElementById('lbLineInc'),
+    lbLineTxt: document.getElementById('lbLineTxt'),
     insNudge: document.getElementById('insNudge'),
     insTitle: document.getElementById('insTitle'),
     insBody: document.getElementById('insBody'),
@@ -1098,7 +1118,7 @@
   }
 
   // ---------- measurement ----------
-  function ingest(kmh, accM, distM, dtS, real) {
+  function ingest(kmh, accM, distM, dtS, real, lat, lon) {
     if (kmh < 1) kmh = 0;                    // GPS-brus vid stillastående
     if (kmh > 1300) return;                  // orimligt — släng
     var filtered = despike(kmh);
@@ -1109,7 +1129,8 @@
     kmh = filtered;
     if (real && accM != null && accM <= 60) {
       // mätspår för topplistan (endast riktig GPS, aldrig demo)
-      sessionSamples.push({ t: Date.now(), kmh: Math.round(kmh * 10) / 10, acc: Math.round(accM) });
+      // lat/lon stannar i minnet på enheten — används bara för linjedetektering vid inskick
+      sessionSamples.push({ t: Date.now(), kmh: Math.round(kmh * 10) / 10, acc: Math.round(accM), lat: lat, lon: lon });
       var sCut = Date.now() - 15 * 60 * 1000;
       while (sessionSamples.length && sessionSamples[0].t < sCut) sessionSamples.shift();
       if (kmh > bestReal) bestReal = kmh;
@@ -1163,7 +1184,7 @@
     }
 
     if (kmh != null) {
-      ingest(kmh, c.accuracy, distM, dtS, true);
+      ingest(kmh, c.accuracy, distM, dtS, true, c.latitude, c.longitude);
       setStatus(kmh < 1 ? 'fixOkMove' : 'live');
     } else {
       els.acc.innerHTML = '±' + Math.round(c.accuracy) + '<small>m</small>';
@@ -1433,10 +1454,67 @@
   // ---------- topplista ----------
   var LB_URL = 'https://mrcuhsuavhysldstkksu.supabase.co/functions/v1';
   var LB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yY3Voc3Vhdmh5c2xkc3Rra3N1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxOTI2MDMsImV4cCI6MjA4NDc2ODYwM30.kvglS0TiwZUKbOJLqMBRht_smF6AdFs1gj75uSyNpFA';
-  var sessionSamples = [];   // riktiga GPS-sampel {t, kmh, acc} — grunden för inskick
+  var sessionSamples = [];   // riktiga GPS-sampel {t, kmh, acc, lat, lon} — grunden för inskick
   var bestReal = 0;          // högsta riktiga GPS-fart denna session
   var lbPeriod = 'today';
   var lbData = null;
+  var detectedLine = null;   // linjeetikett vid senaste detekteringen
+
+  // ---------- linjedetektering (allt på enheten — koordinater lämnar aldrig telefonen) ----------
+  // Grova waypoint-lister längs varje linje; en sampel "tillhör" linjen om den ligger inom 4 km.
+  var LINES = [
+    ['Tōkaidō', [[35.681, 139.767], [35.630, 139.740], [35.507, 139.617], [35.256, 139.155], [35.104, 139.078], [34.971, 138.389], [34.704, 137.734], [34.763, 137.382], [35.171, 136.881], [35.316, 136.685], [35.314, 136.290], [34.986, 135.759], [34.733, 135.500]]],
+    ['Sanyō', [[34.733, 135.500], [34.707, 135.213], [34.827, 134.690], [34.666, 133.919], [34.489, 133.362], [34.397, 132.475], [34.174, 132.177], [34.052, 131.803], [34.093, 131.398], [33.886, 130.882], [33.590, 130.397]]],
+    ['Tōhoku', [[35.681, 139.767], [35.714, 139.777], [35.906, 139.624], [36.559, 139.898], [37.398, 140.388], [37.754, 140.459], [38.260, 140.882], [38.926, 141.133], [39.701, 141.136], [40.509, 141.431], [40.827, 140.694]]],
+    ['Hokuriku', [[35.681, 139.767], [35.714, 139.777], [35.906, 139.624], [36.139, 139.390], [36.322, 139.012], [36.342, 138.635], [36.396, 138.250], [36.643, 138.189], [37.030, 138.254], [37.038, 137.862], [36.701, 137.213], [36.578, 136.648], [36.402, 136.452], [36.062, 136.223], [35.645, 136.077]]],
+    ['Jōetsu', [[35.681, 139.767], [35.714, 139.777], [35.906, 139.624], [36.139, 139.390], [36.322, 139.012], [36.936, 138.810], [37.447, 138.852], [37.912, 139.061]]],
+    ['Hokkaidō', [[40.827, 140.694], [41.400, 140.950], [41.775, 140.729]]],
+    ['Kyūshū', [[33.590, 130.397], [33.319, 130.524], [32.803, 130.689], [32.604, 130.607], [31.907, 130.325], [31.583, 130.541]]],
+    ['Nishi-Kyūshū', [[33.196, 129.987], [33.114, 129.979], [32.929, 129.961], [32.832, 130.038], [32.752, 129.869]]]
+  ];
+
+  function pointSegKm(lat, lon, a, b) {
+    var ky = 111.32, kx = 111.32 * Math.cos(a[0] * Math.PI / 180);
+    var px = (lon - a[1]) * kx, py = (lat - a[0]) * ky;
+    var bx = (b[1] - a[1]) * kx, by = (b[0] - a[0]) * ky;
+    var len2 = bx * bx + by * by;
+    var tt = len2 > 0 ? Math.max(0, Math.min(1, (px * bx + py * by) / len2)) : 0;
+    var dx = px - tt * bx, dy = py - tt * by;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function detectLine(win) {
+    var best = null, bestCov = 0, tied = false;
+    for (var li = 0; li < LINES.length; li++) {
+      var pts = LINES[li][1], covered = 0, withPos = 0;
+      for (var si = 0; si < win.length; si++) {
+        var s = win[si];
+        if (s.lat == null) continue;
+        withPos++;
+        var dmin = 1e9;
+        for (var pi = 0; pi < pts.length - 1; pi++) {
+          var d = pointSegKm(s.lat, s.lon, pts[pi], pts[pi + 1]);
+          if (d < dmin) dmin = d;
+        }
+        if (dmin <= 4) covered++;
+      }
+      var cov = withPos ? covered / withPos : 0;
+      if (cov > bestCov + 0.001) { bestCov = cov; best = LINES[li][0]; tied = false; }
+      else if (Math.abs(cov - bestCov) <= 0.001 && cov >= 0.6) tied = true;   // delad sträcka — osäkert
+    }
+    if (tied || bestCov < 0.6) return null;
+    return best;
+  }
+
+  function refreshLineRow() {
+    detectedLine = detectLine(traceWindow());
+    if (detectedLine) {
+      els.lbLineTxt.textContent = t('lbLineInc') + ': ' + detectedLine;
+      els.lbLineWrap.classList.remove('hidden');
+    } else {
+      els.lbLineWrap.classList.add('hidden');
+    }
+  }
 
   function lbHeaders() {
     return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + LB_KEY, 'apikey': LB_KEY };
@@ -1471,10 +1549,17 @@
         var nm = document.createElement('span');
         nm.className = 'lb-nm';
         nm.textContent = rows[i].name;   // textContent = XSS-säkert
+        li.appendChild(rank); li.appendChild(nm);
+        if (rows[i].line) {
+          var ln = document.createElement('span');
+          ln.className = 'lb-ln';
+          ln.textContent = rows[i].line;   // textContent här med
+          li.appendChild(ln);
+        }
         var val = document.createElement('span');
         val.className = 'lb-kmh';
         val.textContent = Math.round(rows[i].kmh) + ' km/h';
-        li.appendChild(rank); li.appendChild(nm); li.appendChild(val);
+        li.appendChild(val);
         els.lbList.appendChild(li);
       }
     }
@@ -1516,11 +1601,20 @@
     }
     var maxK = 0;
     for (var i = 0; i < win.length; i++) if (win[i].kmh > maxK) maxK = win[i].kmh;
+    // koordinater skickas ALDRIG — bara {t, kmh, acc} + ev. grov linjeetikett
+    var cleanWin = [];
+    for (var ci = 0; ci < win.length; ci++) {
+      cleanWin.push({ t: win[ci].t, kmh: win[ci].kmh, acc: win[ci].acc });
+    }
+    var payload = { name: name, kmh: maxK, samples: cleanWin };
+    if (detectedLine && !els.lbLineWrap.classList.contains('hidden') && els.lbLineInc.checked) {
+      payload.line = detectedLine;
+    }
     els.lbSend.disabled = true;
     fetch(LB_URL + '/shinkansen-submit', {
       method: 'POST',
       headers: lbHeaders(),
-      body: JSON.stringify({ name: name, kmh: maxK, samples: win })
+      body: JSON.stringify(payload)
     }).then(function (r) {
       return r.json().then(function (j) { return { status: r.status, j: j }; });
     }).then(function (res) {
@@ -1545,6 +1639,7 @@
     loading.className = 'lb-empty';
     loading.textContent = '…';
     els.lbList.appendChild(loading);
+    refreshLineRow();
     lbFetch();
   });
   els.lbClose.addEventListener('click', function () {
