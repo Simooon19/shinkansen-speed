@@ -2,11 +2,12 @@
 <html lang="sv">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; manifest-src 'self'; connect-src https://mrcuhsuavhysldstkksu.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src https://mrcuhsuavhysldstkksu.supabase.co; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="新幹線 Speed">
 <meta name="theme-color" content="#0b1220">
 <title>新幹線 Shinkansen Speed — Live GPS Speedometer</title>
 <meta name="description" content="See how fast your Shinkansen is going — live GPS speedometer in your browser. No app needed. 9 languages.">
@@ -1378,6 +1379,13 @@
     els.overlay.classList.add('hidden');
     if (DEMO) startDemo(); else startGPS();
   });
+
+  // ---------- PWA: installerbar + offline ----------
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
 })();
 </script>
 </body>

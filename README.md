@@ -19,6 +19,7 @@ Open the link on your phone, tap **Start**, allow location access, and watch the
 - **Milestone confetti** at 200, 285, 320 and 500 km/h 🎉
 - **Tunnel detection** — GPS dropouts at speed are flagged as tunnels (you'll see plenty on the Tōkaidō line)
 - **Screen wake lock** so the display stays on
+- **Installable on iPhone & Android** (PWA) — add it to your home screen, works offline
 - **Share button** that includes your current speed
 - **Global leaderboard** 🏆 — submit your top speed and compete today / this week / this month / all-time, with a 30-day trend chart. Submissions are validated server-side against train physics (acceleration limits, GPS accuracy, trace continuity) to keep fake entries out. Only a display name, speed and timestamp are stored — your position never leaves your phone. A salted IP hash is kept for rate limiting only.
 - Works for any train, plane or ferry — not just the Shinkansen (passengers only — never use while driving)
