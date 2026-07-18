@@ -2,26 +2,50 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>App icon template — render square</title>
+<title>App icon — render at 1024x1024</title>
 <style>
   * { margin: 0; padding: 0; }
-  body {
-    width: 100vw; height: 100vh; overflow: hidden;
-    background: radial-gradient(120vw 120vh at 50% -20%, #14213d 0%, #0b1220 60%, #070b14 100%);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .ring {
-    width: 74vw; height: 74vw;
-    border-radius: 50%;
-    border: 4.5vw solid rgba(127, 209, 192, 0.85);
-    border-bottom-color: rgba(255, 143, 177, 0.9);
-    display: flex; align-items: center; justify-content: center;
-    transform: rotate(45deg);
-  }
-  .train { font-size: 38vw; transform: rotate(-45deg); }
+  body { width: 100vw; height: 100vh; overflow: hidden; }
+  svg { display: block; width: 100vw; height: 100vh; }
 </style>
 </head>
 <body>
-  <div class="ring"><div class="train">🚄</div></div>
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="30%" r="90%">
+      <stop offset="0%" stop-color="#14213d"/>
+      <stop offset="55%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#070b14"/>
+    </radialGradient>
+    <linearGradient id="arc" x1="0%" y1="100%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#59c9ad"/>
+      <stop offset="60%" stop-color="#7fd1c0"/>
+      <stop offset="100%" stop-color="#ff8fb1"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- speed lines -->
+  <g stroke="#7fd1c0" stroke-width="17" stroke-linecap="round">
+    <line x1="140" y1="512" x2="238" y2="512" opacity="0.85"/>
+    <line x1="170" y1="543" x2="238" y2="543" opacity="0.55"/>
+    <line x1="198" y1="574" x2="238" y2="574" opacity="0.3"/>
+  </g>
+
+  <!-- shinkansen: silhouette, window band into windshield, lower stripe -->
+  <path d="M 296 474 H 560 C 665 474 728 508 762 548 C 774 563 766 578 746 578 H 296
+           Q 276 578 276 558 V 494 Q 276 474 296 474 Z" fill="#e8edf7"/>
+  <path d="M 310 494 H 615 C 660 494 698 508 724 532 L 706 544 C 682 524 652 514 612 514 H 310 Z"
+        fill="#59c9ad"/>
+  <path d="M 640 496 C 678 502 706 516 724 534 L 706 546 C 690 528 668 516 640 510 Z"
+        fill="#14213d"/>
+  <rect x="300" y="550" width="400" height="13" rx="6.5" fill="#59c9ad" opacity="0.55"/>
+
+  <!-- gauge arc (240° sweep, like the app) + needle dot -->
+  <path d="M 200 692 A 360 360 0 1 1 824 692" fill="none" stroke="url(#arc)"
+        stroke-width="52" stroke-linecap="round"/>
+  <circle cx="824" cy="692" r="34" fill="#ffffff"/>
+</svg>
 </body>
 </html>
