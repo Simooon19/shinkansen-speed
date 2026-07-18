@@ -1769,6 +1769,12 @@
       navigator.serviceWorker.register('sw.js').catch(function () {});
     });
   }
+
+  // ---------- anonym besöksräknare (ingen IP, inga cookies — bara "N laddningar/dag") ----------
+  // räknar bara på de publika hostnamnen — aldrig demo, localhost eller fil://
+  if (!DEMO && /(^|\.)github\.io$|\.vercel\.app$/.test(location.hostname) && navigator.sendBeacon) {
+    try { navigator.sendBeacon(LB_URL + '/shinkansen-visit', ''); } catch (e) {}
+  }
 })();
 </script>
 </body>

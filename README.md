@@ -34,7 +34,7 @@ Open the link on your phone, tap **Start**, allow location access, and watch the
 
 ## Tech
 
-A single self-contained `index.html` — no frameworks, no build step. Everything runs locally in your browser; the only network calls are the optional leaderboard fetch/submit (Supabase). Uses the Geolocation API, Screen Wake Lock API, Web Share API, SVG and canvas. Hosted on GitHub Pages.
+A single self-contained `index.html` — no frameworks, no build step. Everything runs locally in your browser; the only network calls are the optional leaderboard fetch/submit and an anonymous daily page-view counter (no IP, no cookies, no fingerprinting — just "N loads per day"). Uses the Geolocation API, Screen Wake Lock API, Web Share API, SVG and canvas. Hosted on GitHub Pages.
 
 - [`poster.html`](poster.html) — printable A4 QR poster
 - [`og.html`](og.html) — social preview image template
