@@ -217,12 +217,65 @@
     cursor: pointer;
   }
   .btn:active { transform: scale(0.97); }
-  .btn-install {
-    margin-top: 14px; background: none; border: 1px solid rgba(142,232,210,0.5);
-    color: #8ee8d2; font-size: 13.5px; font-weight: 600;
-    border-radius: 999px; padding: 9px 22px; cursor: pointer;
+
+  /* ---------- install-nudge (A2HS) ---------- */
+  .nudge {
+    position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+    z-index: 12; max-width: 430px; margin: 0 auto;
+    display: flex; align-items: flex-start; gap: 11px;
+    background: #0e1626; border: 1px solid rgba(127,209,192,0.35); border-radius: 16px;
+    padding: 12px 12px 12px 13px; box-shadow: 0 10px 34px rgba(0,0,0,0.5);
+    transform: translateY(140%); opacity: 0;
+    transition: transform .45s cubic-bezier(.2,.9,.25,1), opacity .45s;
   }
-  .install-hint { margin-top: 14px; font-size: 12px; color: #8fa0ba; max-width: 300px; line-height: 1.5; }
+  .nudge.show { transform: translateY(0); opacity: 1; }
+  .nudge-icon {
+    flex: none; width: 38px; height: 38px; border-radius: 12px;
+    background: rgba(127,209,192,0.14); color: #8ee8d2;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nudge-text { flex: 1; min-width: 0; text-align: left; }
+  .nudge-title { font-size: 13.5px; font-weight: 700; }
+  .nudge-body { font-size: 11.5px; color: #8fa0ba; margin-top: 2px; line-height: 1.45; }
+  .nudge-cta {
+    margin-top: 8px; background: linear-gradient(135deg, #8ee8d2, #59c9ad); color: #06251e;
+    border: none; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+    padding: 7px 16px; cursor: pointer;
+  }
+  .nudge-x {
+    flex: none; background: none; border: none; color: #8fa0ba; font-size: 15px;
+    cursor: pointer; padding: 2px 6px; margin: -4px -4px 0 0;
+  }
+
+  /* ---------- iOS guided overlay ---------- */
+  .ios-guide { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; justify-content: flex-end; }
+  .ios-backdrop { position: absolute; inset: 0; background: rgba(7,11,20,0.88); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .ios-card {
+    position: relative; margin: 0 auto 6px; width: min(92vw, 340px);
+    background: #0e1626; border: 1px solid rgba(127,209,192,0.35); border-radius: 18px;
+    padding: 18px; text-align: center;
+  }
+  .ios-card h2 { font-size: 17px; font-weight: 800; }
+  .ios-card ol { list-style: none; margin-top: 14px; text-align: left; }
+  .ios-card li { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; font-size: 13.5px; }
+  .ios-ic {
+    flex: none; width: 40px; height: 40px; border-radius: 12px;
+    background: rgba(127,209,192,0.14); color: #8ee8d2;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ios-alt { font-size: 11px; color: #8fa0ba; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; margin-top: 2px; line-height: 1.5; }
+  .ios-done { width: 100%; margin-top: 14px; font-size: 15px; padding: 12px; }
+  .ios-arrow {
+    position: relative; align-self: flex-end; text-align: right;
+    padding: 0 18px calc(env(safe-area-inset-bottom, 0px) + 6px) 0;
+    color: #fff; font-size: 13px; font-weight: 600; text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+  }
+  .ios-arrow svg { display: block; margin-left: auto; animation: iosBounce 1.2s infinite; }
+  @keyframes iosBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(9px); }
+  }
+
   .hidden { display: none !important; }
 
   footer { margin-top: auto; padding-top: 14px; font-size: 11.5px; color: #5c6b85; letter-spacing: 0.04em; }
@@ -326,8 +379,35 @@
   <div class="big-emoji">🚄</div>
   <p id="ovText"></p>
   <button class="btn" id="startBtn">Starta</button>
-  <button class="btn-install hidden" id="installBtn"></button>
-  <div class="install-hint hidden" id="installHint"></div>
+</div>
+
+<div class="nudge hidden" id="insNudge" role="dialog" aria-live="polite">
+  <div class="nudge-icon">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  </div>
+  <div class="nudge-text">
+    <div class="nudge-title" id="insTitle"></div>
+    <div class="nudge-body" id="insBody"></div>
+    <button class="nudge-cta" id="insCta"></button>
+  </div>
+  <button class="nudge-x" id="insX" aria-label="Close">✕</button>
+</div>
+
+<div class="ios-guide hidden" id="iosGuide" role="dialog" aria-modal="true">
+  <div class="ios-backdrop" id="iosBackdrop"></div>
+  <div class="ios-card">
+    <h2 id="gTitle"></h2>
+    <ol>
+      <li><span class="ios-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span><span><b>1.</b> <span id="gStep1"></span></span></li>
+      <li><span class="ios-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span><b>2.</b> <span id="gStep2"></span></span></li>
+    </ol>
+    <p class="ios-alt" id="gAlt"></p>
+    <button class="btn ios-done" id="iosDone"></button>
+  </div>
+  <div class="ios-arrow">
+    <span id="gArrow"></span>
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
 </div>
 
 <footer>
@@ -390,7 +470,15 @@
       shareText: "We're doing {v} km/h on the Shinkansen right now! 🚄",
       avg: 'AVG', dist: 'DISTANCE', chart: 'LAST 5 MIN', scale: 'SCALE',
       install: 'Install app',
-      installHint: 'Tip: tap Share and choose "Add to Home Screen" to keep it one tap away.'
+      insTitle: 'Install Shinkansen Speed',
+      insBody: 'Add it to your home screen for a faster, app-like experience.',
+      insSafari: 'To install, open this page in Safari — then tap Share → "Add to Home Screen".',
+      gTitle: 'Add to your home screen',
+      gStep1: 'Tap Share at the bottom (or ••• → Share)',
+      gStep2: 'Choose "Add to Home Screen"',
+      gArrow: 'Down here in Safari ↘',
+      gAlt: 'On iPad (or with the address bar at the top), Share is at the top-right.',
+      gDone: 'Got it'
     },
     sv: {
       ovText: 'Mäter din hastighet med telefonens GPS. Godkänn platsåtkomst när webbläsaren frågar — funkar bäst vid fönstret.',
@@ -425,7 +513,15 @@
       shareText: 'Vi kör {v} km/h på Shinkansen just nu! 🚄',
       avg: 'MEDEL', dist: 'DISTANS', chart: 'SENASTE 5 MIN', scale: 'SKALA',
       install: 'Installera appen',
-      installHint: 'Tips: tryck på Dela och välj ”Lägg till på hemskärmen” så hittar du den med ett tryck.'
+      insTitle: 'Installera Shinkansen Speed',
+      insBody: 'Lägg till den på hemskärmen för en snabbare, appliknande upplevelse.',
+      insSafari: 'Öppna sidan i Safari för att installera — tryck sedan på Dela → ”Lägg till på hemskärmen”.',
+      gTitle: 'Lägg till på hemskärmen',
+      gStep1: 'Tryck på Dela längst ner (eller ••• → Dela)',
+      gStep2: 'Välj ”Lägg till på hemskärmen”',
+      gArrow: 'Här nere i Safari ↘',
+      gAlt: 'På iPad (eller med adressfältet högst upp) sitter Dela uppe till höger.',
+      gDone: 'Klar'
     },
     ja: {
       ovText: 'スマホのGPSで速度を測定します。位置情報の許可を求められたら許可してください。窓際が最適です。',
@@ -460,7 +556,15 @@
       shareText: 'いま新幹線で時速{v}kmで走行中！🚄',
       avg: '平均', dist: '距離', chart: '直近5分', scale: 'スケール',
       install: 'アプリをインストール',
-      installHint: 'ヒント：共有ボタンから「ホーム画面に追加」を選ぶと、ワンタップで開けます。'
+      insTitle: 'Shinkansen Speedをインストール',
+      insBody: 'ホーム画面に追加すると、より速くアプリのように使えます。',
+      insSafari: 'インストールするにはSafariでこのページを開き、共有 →「ホーム画面に追加」をタップしてください。',
+      gTitle: 'ホーム画面に追加',
+      gStep1: '画面下の共有ボタン（または ••• → 共有）をタップ',
+      gStep2: '「ホーム画面に追加」を選択',
+      gArrow: 'Safariの右下はこちら ↘',
+      gAlt: 'iPad（またはアドレスバーが上の場合）は、共有ボタンが右上にあります。',
+      gDone: 'OK'
     },
     zh: {
       ovText: '使用手机GPS测量速度。浏览器询问时请允许位置权限。靠窗效果最佳。',
@@ -495,7 +599,15 @@
       shareText: '我们乘坐的新干线现在时速{v}公里！🚄',
       avg: '平均', dist: '距离', chart: '最近5分钟', scale: '量程',
       install: '安装应用',
-      installHint: '提示：点击“分享”并选择“添加到主屏幕”，以后一键打开。'
+      insTitle: '安装 Shinkansen Speed',
+      insBody: '添加到主屏幕，体验更快、更像原生应用。',
+      insSafari: '要安装，请在 Safari 中打开此页面，然后点“分享”→“添加到主屏幕”。',
+      gTitle: '添加到主屏幕',
+      gStep1: '点击底部的“分享”（或 ••• → 分享）',
+      gStep2: '选择“添加到主屏幕”',
+      gArrow: '在 Safari 的右下角 ↘',
+      gAlt: '在 iPad（或地址栏在顶部）上，“分享”在右上角。',
+      gDone: '知道了'
     },
     ko: {
       ovText: '휴대폰 GPS로 속도를 측정합니다. 위치 권한을 허용해 주세요. 창가에서 가장 잘 작동합니다.',
@@ -530,7 +642,15 @@
       shareText: '지금 신칸센으로 시속 {v}km로 달리는 중! 🚄',
       avg: '평균', dist: '거리', chart: '최근 5분', scale: '범위',
       install: '앱 설치',
-      installHint: '팁: 공유 버튼을 누르고 “홈 화면에 추가”를 선택하면 바로 실행할 수 있어요.'
+      insTitle: 'Shinkansen Speed 설치',
+      insBody: '홈 화면에 추가하면 더 빠르고 앱처럼 사용할 수 있어요.',
+      insSafari: '설치하려면 Safari에서 이 페이지를 연 후 공유 → “홈 화면에 추가”를 누르세요.',
+      gTitle: '홈 화면에 추가',
+      gStep1: '하단의 공유 버튼(또는 ••• → 공유)을 누르세요',
+      gStep2: '“홈 화면에 추가”를 선택하세요',
+      gArrow: 'Safari 오른쪽 아래 ↘',
+      gAlt: 'iPad(또는 주소창이 위에 있는 경우)에는 공유 버튼이 오른쪽 상단에 있습니다.',
+      gDone: '확인'
     },
     de: {
       ovText: 'Misst deine Geschwindigkeit per GPS. Erlaube den Standortzugriff, wenn der Browser fragt — am Fenster klappt es am besten.',
@@ -565,7 +685,15 @@
       shareText: 'Wir fahren gerade {v} km/h im Shinkansen! 🚄',
       avg: 'SCHNITT', dist: 'DISTANZ', chart: 'LETZTE 5 MIN', scale: 'SKALA',
       install: 'App installieren',
-      installHint: 'Tipp: Tippe auf „Teilen“ und dann auf „Zum Home-Bildschirm“, dann hast du sie immer griffbereit.'
+      insTitle: 'Shinkansen Speed installieren',
+      insBody: 'Zum Home-Bildschirm hinzufügen — schneller und wie eine echte App.',
+      insSafari: 'Zum Installieren öffne diese Seite in Safari und tippe auf „Teilen“ → „Zum Home-Bildschirm“.',
+      gTitle: 'Zum Home-Bildschirm',
+      gStep1: 'Tippe unten auf „Teilen“ (oder ••• → Teilen)',
+      gStep2: 'Wähle „Zum Home-Bildschirm“',
+      gArrow: 'Hier unten in Safari ↘',
+      gAlt: 'Auf dem iPad (oder bei Adressleiste oben) ist „Teilen“ oben rechts.',
+      gDone: 'Verstanden'
     },
     fr: {
       ovText: "Mesure ta vitesse via le GPS du téléphone. Autorise la localisation quand le navigateur le demande — idéalement près de la fenêtre.",
@@ -600,7 +728,15 @@
       shareText: 'On roule à {v} km/h en Shinkansen ! 🚄',
       avg: 'MOYENNE', dist: 'DISTANCE', chart: 'DERNIÈRES 5 MIN', scale: 'ÉCHELLE',
       install: "Installer l'app",
-      installHint: "Astuce : touche Partager puis « Sur l'écran d'accueil » pour l'avoir à portée de doigt."
+      insTitle: 'Installer Shinkansen Speed',
+      insBody: "Ajoute-la à ton écran d'accueil pour une expérience plus rapide, comme une app.",
+      insSafari: "Pour l'installer, ouvre cette page dans Safari puis touche Partager → « Sur l'écran d'accueil ».",
+      gTitle: "Sur l'écran d'accueil",
+      gStep1: 'Touche Partager en bas (ou ••• → Partager)',
+      gStep2: "Choisis « Sur l'écran d'accueil »",
+      gArrow: 'Ici en bas dans Safari ↘',
+      gAlt: "Sur iPad (ou avec la barre d'adresse en haut), Partager est en haut à droite.",
+      gDone: "C'est compris"
     },
     es: {
       ovText: 'Mide tu velocidad con el GPS del móvil. Permite el acceso a la ubicación cuando el navegador lo pida — funciona mejor junto a la ventana.',
@@ -635,7 +771,15 @@
       shareText: '¡Vamos a {v} km/h en el Shinkansen ahora mismo! 🚄',
       avg: 'MEDIA', dist: 'DISTANCIA', chart: 'ÚLTIMOS 5 MIN', scale: 'ESCALA',
       install: 'Instalar app',
-      installHint: 'Consejo: pulsa Compartir y elige «Añadir a pantalla de inicio» para tenerla a un toque.'
+      insTitle: 'Instalar Shinkansen Speed',
+      insBody: 'Añádela a tu pantalla de inicio para una experiencia más rápida, como una app.',
+      insSafari: 'Para instalarla, abre esta página en Safari y pulsa Compartir → «Añadir a pantalla de inicio».',
+      gTitle: 'Añadir a pantalla de inicio',
+      gStep1: 'Pulsa Compartir abajo (o ••• → Compartir)',
+      gStep2: 'Elige «Añadir a pantalla de inicio»',
+      gArrow: 'Aquí abajo en Safari ↘',
+      gAlt: 'En iPad (o con la barra de direcciones arriba), Compartir está arriba a la derecha.',
+      gDone: 'Entendido'
     },
     zht: {
       ovText: '使用手機GPS測量速度。瀏覽器詢問時請允許位置權限。靠窗效果最佳。',
@@ -670,7 +814,15 @@
       shareText: '我們搭乘的新幹線現在時速{v}公里！🚄',
       avg: '平均', dist: '距離', chart: '最近5分鐘', scale: '量程',
       install: '安裝應用程式',
-      installHint: '提示：點「分享」並選擇「加入主畫面」，之後一按即可開啟。'
+      insTitle: '安裝 Shinkansen Speed',
+      insBody: '加入主畫面，開啟更快、更像原生 App 的體驗。',
+      insSafari: '若要安裝，請在 Safari 開啟此頁面，然後點「分享」→「加入主畫面」。',
+      gTitle: '加入主畫面',
+      gStep1: '點按底部的「分享」（或 ••• → 分享）',
+      gStep2: '選擇「加入主畫面」',
+      gArrow: 'Safari 右下角 ↘',
+      gAlt: '在 iPad（或網址列在上方）上，「分享」位於右上角。',
+      gDone: '知道了'
     }
   };
 
@@ -735,8 +887,19 @@
     lbName: document.getElementById('lbName'),
     lbSend: document.getElementById('lbSend'),
     lbNote: document.getElementById('lbNote'),
-    installBtn: document.getElementById('installBtn'),
-    installHint: document.getElementById('installHint')
+    insNudge: document.getElementById('insNudge'),
+    insTitle: document.getElementById('insTitle'),
+    insBody: document.getElementById('insBody'),
+    insCta: document.getElementById('insCta'),
+    insX: document.getElementById('insX'),
+    iosGuide: document.getElementById('iosGuide'),
+    iosBackdrop: document.getElementById('iosBackdrop'),
+    iosDone: document.getElementById('iosDone'),
+    gTitle: document.getElementById('gTitle'),
+    gStep1: document.getElementById('gStep1'),
+    gStep2: document.getElementById('gStep2'),
+    gAlt: document.getElementById('gAlt'),
+    gArrow: document.getElementById('gArrow')
   };
 
   // Klistra in din Buy Me a Coffee/Ko-fi-länk här så dyker ☕-knappen upp i sidfoten
@@ -830,8 +993,7 @@
     els.lbName.placeholder = t('lbNamePh');
     els.lbSend.textContent = t('lbSend');
     els.lbDailyTitle.textContent = t('lbDaily');
-    els.installBtn.textContent = t('install');
-    els.installHint.textContent = t('installHint');
+    updateInsTexts();
     var tabMap = { today: 'lbToday', week: 'lbWeek', month: 'lbMonth', alltime: 'lbAll' };
     var tabs = document.querySelectorAll('.lb-tab');
     for (var ti = 0; ti < tabs.length; ti++) {
@@ -1410,28 +1572,85 @@
     if (DEMO) startDemo(); else startGPS();
   });
 
-  // ---------- install (PWA) ----------
+  // ---------- install (PWA): nudge + iOS-guide (samma mönster som Tjattra/remiss) ----------
+  var INSTALL_DISMISS = 'shinkansen.installDismissed';
   var installEvt = null;
+  var insSafariMode = false;
   var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                      window.navigator.standalone === true;
+
+  // På iOS funkar A2HS bara i äkta Safari — upptäck andra iOS-webbläsare och
+  // in-app-webviews (TikTok/Instagram/Facebook …) där länken måste öppnas i Safari först.
+  function iosNeedsSafari() {
+    if (!IS_IOS) return false;
+    var ua = navigator.userAgent;
+    var otherBrowser = /crios|fxios|edgios|opios/i.test(ua);
+    var inApp = /FBAN|FBAV|Instagram|Line\/|Twitter|Snapchat|TikTok|musical_ly|WhatsApp|Pinterest|LinkedInApp/i.test(ua) ||
+                !/safari/i.test(ua);
+    return otherBrowser || inApp;
+  }
+
+  function updateInsTexts() {
+    els.insTitle.textContent = t('insTitle');
+    els.insBody.textContent = t(insSafariMode ? 'insSafari' : 'insBody');
+    els.insCta.textContent = t('install');
+    els.gTitle.textContent = t('gTitle');
+    els.gStep1.textContent = t('gStep1');
+    els.gStep2.textContent = t('gStep2');
+    els.gAlt.textContent = t('gAlt');
+    els.gArrow.textContent = t('gArrow');
+    els.iosDone.textContent = t('gDone');
+  }
+
+  function insDismissed() { return lsGet(INSTALL_DISMISS) === '1'; }
+  function insEligible() {
+    if (DEMO || isStandalone || insDismissed()) return false;   // aldrig i demoläge (inspelningar)
+    return !!installEvt || IS_IOS;
+  }
+  function showNudge() {
+    if (!insEligible() || !els.insNudge.classList.contains('hidden')) return;
+    insSafariMode = IS_IOS && iosNeedsSafari();
+    updateInsTexts();
+    els.insCta.classList.toggle('hidden', insSafariMode);       // i in-app: ingen knapp, bara instruktion
+    els.insNudge.classList.remove('hidden');
+    void els.insNudge.offsetWidth;                              // tvinga reflow så sliden spelas
+    els.insNudge.classList.add('show');
+  }
+  function hideNudge(persist) {
+    if (persist) lsSet(INSTALL_DISMISS, '1');
+    els.insNudge.classList.add('hidden');
+    els.insNudge.classList.remove('show');
+  }
+
   window.addEventListener('beforeinstallprompt', function (e) {
-    e.preventDefault();                 // vi visar vår egen knapp i stället för mini-infobaren
+    e.preventDefault();                 // vi styr själva via nudgen
     installEvt = e;
-    if (!isStandalone) els.installBtn.classList.remove('hidden');
+    showNudge();
   });
-  els.installBtn.addEventListener('click', function () {
-    if (!installEvt) return;
-    installEvt.prompt();
-    installEvt.userChoice.then(function () {
-      installEvt = null;
-      els.installBtn.classList.add('hidden');
-    });
+  els.insCta.addEventListener('click', function () {
+    if (installEvt) {
+      installEvt.prompt();
+      installEvt.userChoice.then(function () {
+        installEvt = null;
+        hideNudge(true);
+      }).catch(function () { hideNudge(false); });
+    } else if (IS_IOS) {
+      els.iosGuide.classList.remove('hidden');
+    }
   });
+  els.insX.addEventListener('click', function () { hideNudge(true); });
+  function closeGuide() {
+    els.iosGuide.classList.add('hidden');
+    hideNudge(true);
+  }
+  els.iosDone.addEventListener('click', closeGuide);
+  els.iosBackdrop.addEventListener('click', closeGuide);
   window.addEventListener('appinstalled', function () {
-    els.installBtn.classList.add('hidden');
-    els.installHint.classList.add('hidden');
+    els.iosGuide.classList.add('hidden');
+    hideNudge(true);
   });
-  if (IS_IOS && !isStandalone) els.installHint.classList.remove('hidden');   // iOS har ingen prompt — visa tips
+  updateInsTexts();
+  setTimeout(showNudge, 1200);          // inte det allra första användaren ser
 
   // ---------- PWA: installerbar + offline ----------
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
